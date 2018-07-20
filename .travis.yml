@@ -1,0 +1,25 @@
+language: python
+
+python:
+  - "3.5.2"
+
+# command to install dependecies
+
+install:
+    - pip install -r requirements.txt
+
+script: python manage.py test
+#     - pip install braintree coveralls mock mysqlclient
+# env:
+#   global:
+#     - GIT_COMMITTED_AT=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then git log -1 --pretty=format:%ct; else git log -1 --skip 1 --pretty=format:%ct; fi)
+#     - CODECLIMATE_REPO_TOKEN = "SoXOX0s49ofo0gndJ9so7o16HVkHpQ8PB"
+#     - CC_TEST_REPORTER_ID="56c0420c0cb2cd4e93d4f916917e97c77cdf82df594b1dfd84380e6634ca6785"
+#     - DB=postgres
+
+# addons:
+#   postgresql: "9.4"
+# service:
+#     - redis-server
+
+

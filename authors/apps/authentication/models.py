@@ -116,5 +116,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         the user's real name, we return their username instead.
         """
         return self.username
-
+    
+    @property
+    def auth_token(self):
+        """Presents user with token on login"""
+        self.encoded_jwt = jwt.encode({'name':self.username}, 'SECRET KEY', algorithm='HS256').decode('utf-8')
+        return self.encoded_jwt
 

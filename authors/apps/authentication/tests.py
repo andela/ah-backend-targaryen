@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 class ModelTestCase(TestCase):
+    """Class with tests to do with registration model"""
     def setUp(self):
         """Define the test client and test variables"""
         self.old_count = User.objects.count()
@@ -29,6 +30,7 @@ class ModelTestCase(TestCase):
         self.assertRaises(TypeError, lambda: User.objects.create_superuser(username="davidsuper", email="davidsuper@gmail.com", password=None))
 
 class ViewTestCase(TestCase):
+    """Class with tests to do with registration views"""
     def setUp(self):
         """Test registration api views"""
         self.client = APIClient()

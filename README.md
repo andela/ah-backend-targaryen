@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/andela/ah-backend-targaryen/badge.svg?branch=ch-Integrate-Coveralls-160609547)](https://coveralls.io/github/andela/ah-backend-targaryen?branch=ch-Integrate-Coveralls-160609547)
+
 Authors Haven - A Social platform for the creative at heart.
 =======
 

@@ -1,6 +1,9 @@
 Authors Haven - A Social platform for the creative at heart.
 =======
 
+[![Build Status](https://travis-ci.org/andela/ah-backend-targaryen.svg?branch=ch-integrate-travis-ci-%23160609544)](https://travis-ci.org/andela/ah-backend-targaryen)
+=======
+
 ## Vision
 Create a community of like minded authors to foster inspiration and innovation
 by leveraging the modern web.

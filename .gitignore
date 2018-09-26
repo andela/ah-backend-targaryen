@@ -24,7 +24,6 @@ var/
 .installed.cfg
 *.egg
 .idea/
-.vscode
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -83,7 +82,8 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
-ah-venv
+.vscode/
+ah-venv/*
 
 # Spyder project settings
 .spyderproject
@@ -98,6 +98,5 @@ db.sqlite3
 migrations/
 authors/apps/authentication/migrations/
 
-#ah-django-folder
-ah-backend-targaryen/
-
+# .DS_Store
+.DS_Store

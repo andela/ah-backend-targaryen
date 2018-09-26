@@ -10,7 +10,6 @@ class ModelTestCase(TestCase):
         """Define the test client and test variables"""
         self.old_count = User.objects.count()
         self.user = User.objects.create_user(username="david", email="david@gmail.com", password="password")
-        # self.user_manager = UserManager(username="david", email="david@gmail.com", password="password")
     
     def test_registration_of_user(self):
         """Test that a user can register a new account."""
@@ -29,8 +28,24 @@ class ModelTestCase(TestCase):
         """Test that user can be registered as a super user"""
         self.assertRaises(TypeError, lambda: User.objects.create_superuser(username="davidsuper", email="davidsuper@gmail.com", password=None))
 
+    def test_get_user_email(self):
+        """ Test model method to get user's email """
+        email = self.user.__str__()
+        self.assertEqual(email, "david@gmail.com")
+
+    def test_get_short_name(self):
+        """ Test model method to get username """
+        short_name = self.user.get_short_name()
+        self.assertEqual(short_name, "david")
+
+    def test_get_full_name(self):
+        """ Test property to get username """
+        full_name = self.user.get_full_name
+        self.assertEqual(full_name, "david")
+
+
 class ViewTestCase(TestCase):
-    """Class with tests to do with registration views"""
+    """Class with tests to do with registration and login views"""
     def setUp(self):
         """Test registration api views"""
         self.client = APIClient()
@@ -39,7 +54,11 @@ class ViewTestCase(TestCase):
         self.user_missing_password = {'user':{'username':'baron', 'email':'baron@gmail.com', 'password':None}}
         self.user_missing_email = {'user':{'username':'samuel', 'email':None, 'password':'password'}}
         self.user_missing_name = {'user':{'username':None, 'email':'bridget@gmail.com', 'password':'password_bridget'}}
-
+        self.user_non_alphanumeric_password = {'user':{'username':'samuel', 'email':'samuel@gmail.com', 'password':'password/*'}}
+        self.login_details = {"user":{"email": "samuel@gmail.com", "password": "password"}}
+        self.login_invalid_email = {"user":{"email": "samuelgmail.com", "password": "jakejake"}}
+        self.login_wrong_email = {"user":{"email": "wrong@wrong.com", "password": "password"}}
+        self.login_wrong_password = {"user":{"email": "samuel@gmail.com", "password": "wrong"}}
         self.response = self.client.post('/api/users/',self.user_data,format="json")
         
     def test_api_can_create_a_user(self):
@@ -65,5 +84,35 @@ class ViewTestCase(TestCase):
         """Tests that a user will not be created with a missing name"""
         response = self.client.post('/api/users/',self.user_missing_name,format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
 
+    def test_register_with_non_alphanumeric_password(self):
+        """Tests that a user will not be created with a missing name"""
+        response = self.client.post('/api/users/',self.user_non_alphanumeric_password,format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_login_a_user(self):
+        """ Test login a registered user """
+        response = self.client.post('/api/users/login/',self.login_details,format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_login_with_wrong_password(self):
+        """ Test login with wrong password """
+        response = self.client.post('/api/users/login/',self.login_wrong_password,format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_with_wrong_email(self):
+        """ Test login with wrong email """
+        response = self.client.post('/api/users/login/',self.login_wrong_email,format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_with_invalid_email(self):
+        """ Test login with invalid email """
+        response = self.client.post('/api/users/login/',self.login_invalid_email,format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_user(self):
+        """ Test get user """
+        self.client.post('/api/users/login/',self.login_details,format="json")
+        response = self.client.get('/api/user/',format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    

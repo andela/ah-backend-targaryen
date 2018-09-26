@@ -82,6 +82,8 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
+.vscode/
+ah-venv/*
 
 # Spyder project settings
 .spyderproject
@@ -95,3 +97,6 @@ db.sqlite3
 # Migrations
 migrations/
 authors/apps/authentication/migrations/
+
+# .DS_Store
+.DS_Store

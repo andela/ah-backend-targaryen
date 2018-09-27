@@ -1,0 +1,21 @@
+{
+    "name": "ah-backend-targaryen",
+    "scripts": {},
+    "env": {
+      "DEBUG": {
+        "required": true
+      },
+      "SECRET_KEY": {
+        "required": true
+      },
+      "DATABASE_URL": {
+        "required": true
+      }
+    },
+    "formation": {},
+    "addons": [
+      "heroku-postgresql"
+    ],
+    "buildpacks": []
+  }
+  

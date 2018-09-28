@@ -3,8 +3,10 @@ from authors.apps.authentication.models import User, UserManager
 from authors.apps.authentication.views import (generate_ver_token,
                                                send_verification_link)
 from django.test import TestCase
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.test import APIClient
+
+from .validators import ValidateUserDetails
 
 
 class ModelTestCase(TestCase):
@@ -61,44 +63,52 @@ class ViewTestCase(TestCase):
         self.client = APIClient()
         self.user_data = {"user": {"username": "samuel",
                                    "email": "samuel@gmail.com",
-                                   "password": "password"}}
+                                   "password": "password1"}}
         self.user_data_token = {"user": {"username": "user1",
-                                   "email": "user1@gmail.com",
-                                   "password": "password"}}
+                                         "email": "user1@gmail.com",
+                                         "password": "password1"}}
         self.user_existing_email = {'user': {
                                     'username': 'samuel',
                                     'email': 'samuel@gmail.com',
-                                    'password': 'password'}}
+                                    'password': 'password1'}}
         self.user_invalid_email = {'user': {
-                                    'username': 'samuel',
-                                    'email': 'samuelgmail.com',
-                                    'password': 'password'}}
+            'username': 'samuel',
+            'email': 'samuelgmail.com',
+            'password': 'password1'}}
         self.user_missing_password = {'user': {
-                                    'username': 'baron',
-                                    'email': 'baron@gmail.com',
-                                    'password': None}}
+            'username': 'baron',
+            'email': 'baron@gmail.com',
+            'password': None}}
         self.user_missing_email = {'user': {
-                                    'username': 'samuel',
-                                    'email': None,
-                                    'password': 'password'}}
+            'username': 'samuel',
+            'email': None,
+            'password': 'password1'}}
         self.user_missing_name = {'user': {
-                                    'username': None,
-                                    'email': 'bridget@gmail.com',
-                                    'password': 'password_bridget'}}
+            'username': None,
+            'email': 'bridget@gmail.com',
+            'password': 'password_bridget1'}}
         self.user_non_alphanumeric_password = {'user': {
-                                    'username': 'samuel',
-                                    'email': 'samuel@gmail.com',
-                                    'password': 'password/*'}}
+            'username': 'samuel',
+            'email': 'samuel@gmail.com',
+            'password': 'passworddd'}}
+        self.user_username_less_than_four = {'user': {
+            'username': 'sam',
+            'email': 'samuel@gmail.com',
+            'password': 'password1'}}
+        self.user_password_less_than_eight = {'user': {
+            'username': 'sam',
+            'email': 'samuel@gmail.com',
+            'password': 'pwd1'}}
         self.login_details = {
-            "user": {"email": "samuel@gmail.com", "password": "password"}}
+            "user": {"email": "samuel@gmail.com", "password": "password1"}}
         self.login_details_token = {
-            "user": {"email": "samuel@gmail.com", "password": "password"}}
+            "user": {"email": "samuel@gmail.com", "password": "password1"}}
         self.login_invalid_email = {
-            "user": {"email": "samuelgmail.com", "password": "jakejake"}}
+            "user": {"email": "samuelgmail.com", "password": "password1"}}
         self.login_wrong_email = {
-            "user": {"email": "wrong@wrong.com", "password": "password"}}
+            "user": {"email": "wrong@wrong.com", "password": "password1"}}
         self.login_wrong_password = {
-            "user": {"email": "samuel@gmail.com", "password": "wrong"}}
+            "user": {"email": "samuel@gmail.com", "password": "wrongggg"}}
         self.response = self.client.post(
             '/api/users/', self.user_data, format="json")
 
@@ -142,6 +152,21 @@ class ViewTestCase(TestCase):
             '/api/users/', self.user_non_alphanumeric_password, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_register_with_username_length_less_than_four(self):
+        """Tests that user will not be created with
+        an a username of length less than four characters
+        """
+        response = self.client.post(
+            '/api/users/', self.user_username_less_than_four, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_register_with_password_length_less_than_eight(self):
+        """Tests that user will not be created with a
+        password of length less than eight characters """
+        response = self.client.post(
+            '/api/users/', self.user_password_less_than_eight, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_login_a_user(self):
         """ Test login a registered user """
         response = self.client.post(
@@ -165,14 +190,14 @@ class ViewTestCase(TestCase):
         response = self.client.post(
             '/api/users/login/', self.login_invalid_email, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_token_received_on_registration(self):
         """Tests that user will receive a token on successfil registration"""
         response = self.client.post(
             '/api/users/', self.user_data_token, format="json")
         self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
         assert "auth_token" in response.data
-    
+
     def test_token_received_on_login(self):
         """Tests that user will receive a token on successfil login"""
         response = self.client.post(
@@ -184,3 +209,43 @@ class ViewTestCase(TestCase):
         token = generate_ver_token(self.user_data['user']['email'])
         res = send_verification_link(self.user_data['user']['email'], token)
         self.assertEqual(res.status_code, status.HTTP_202_ACCEPTED)
+
+
+class ValidatorsTestCase(TestCase):
+    """Class tests the validators used in the validate method"""
+
+    def setUp(self):
+        """Set up user details to validate"""
+        self.user = {"user": {"username": "sam",
+                              "email": "samuelgmail.com",
+                              "password1": "passwor",
+                              "password2": "passworddd"}}
+        self.validator = ValidateUserDetails()
+
+    def test_validator_for_username(self):
+        """Test the validator for username less than four characters"""
+        self.assertRaises(
+            serializers.ValidationError,
+            lambda: self.validator.is_username_valid(
+                self.user['user']['username']))
+
+    def test_validator_for_email(self):
+        """Test the validator for invalid email"""
+        self.assertRaises(
+            serializers.ValidationError,
+            self.validator.is_email_valid(
+                self.user['user']['email']))
+
+    def test_validator_for_email(self):
+        """Test the validator for password less than eight characters"""
+        self.assertRaises(
+            serializers.ValidationError,
+            lambda: self.validator.is_password_valid(
+                self.user['user']['password1']))
+
+    def test_validator_for_email(self):
+        """Test the validator for non alphanumeric password"""
+        self.assertRaises(
+            serializers.ValidationError,
+            lambda: self.validator.is_password_valid(
+                self.user['user']['password2']))

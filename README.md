@@ -6,7 +6,12 @@ Create a community of like minded authors to foster inspiration and innovation
 by leveraging the modern web.
 
 ---
+## Application
+Running live at:\
+[Staging](https://ah-backend-targaryen-staging.herokuapp.com/)\
+[Production](https://ah-backend-targaryen.herokuapp.com/)
 
+---
 ## API Spec
 The preferred JSON object to be returned by the API should be structured as follows:
 

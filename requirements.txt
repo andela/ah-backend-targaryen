@@ -5,3 +5,4 @@ djangorestframework==3.8.2
 PyJWT==1.4.2
 pytz==2018.5
 six==1.10.0
+django-rest-swagger==2.2.0

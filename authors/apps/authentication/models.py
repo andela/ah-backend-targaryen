@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin
 )
 from django.db import models
+from authors.apps.core.models import TimeStampedModel
 
 
 class UserManager(BaseUserManager):
@@ -50,7 +51,7 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     # Each `User` needs a human-readable unique identifier that we can use to
     # represent the `User` in the UI. We want to index this column in the
     # database to improve lookup performance.
@@ -74,12 +75,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     # log into the Django admin site. For most users, this flag will always be
     # falsed.
     is_staff = models.BooleanField(default=False)
-
-    # A timestamp representing when this object was created.
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    # A timestamp reprensenting when this object was last updated.
-    updated_at = models.DateTimeField(auto_now=True)
 
     # More fields required by Django when specifying a custom user model.
 

@@ -23,5 +23,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('authors.apps.authentication.urls')),
     path('swagger-docs/', schema_view),
+    path('api/', include('authors.apps.profiles.urls')),
 ]
 

@@ -74,7 +74,7 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
-        serializer_data = request.data.get('user', {})
+        serializer_data = request.data.get('profile', {})
 
         # Here is that serialize, validate, save pattern we talked about
         # before.

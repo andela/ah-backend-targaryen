@@ -14,8 +14,13 @@ from sendgrid.helpers.mail import *
 
 from .backends import JWTAuthentication
 from .renderers import UserJSONRenderer
-from .serializers import (LoginSerializer, RegistrationSerializer,
-                          UserSerializer)
+from .serializers import (
+    LoginSerializer,
+    RegistrationSerializer,
+    UserSerializer,
+    FacebookAuthSerializer,
+    GoogleAuthSerializer
+)
 
 
 def generate_ver_token(data, time):
@@ -165,3 +170,31 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         serializer.save()
 
         return Response({'message': 'Successfully updated password'}, status=status.HTTP_201_CREATED)
+
+
+class FacebookLoginAPIView(APIView):
+    serializer_class = FacebookAuthSerializer
+    permission_classes = (AllowAny,)
+    renderer_classes = (UserJSONRenderer,)
+
+    def post(self, request):
+        user = request.data.get('user', {})
+        # pass data received to the serializer.
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GoogleLoginAPIView(APIView):
+    serializer_class = GoogleAuthSerializer
+    permission_classes = (AllowAny,)
+    renderer_classes = (UserJSONRenderer,)
+
+    def post(self, request):
+        user = request.data.get('user',{})
+        # pass data received to the serializer.
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

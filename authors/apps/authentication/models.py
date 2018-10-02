@@ -8,6 +8,7 @@ from django.contrib.auth.models import (
     )
 from django.db import models
 from authors.apps.core.models import TimeStampedModel
+from .social_login.utils import create_unique_social_id_number
 
 
 class UserManager(BaseUserManager):
@@ -76,6 +77,18 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     # log into the Django admin site. For most users, this flag will always be
     # falsed.
     is_staff = models.BooleanField(default=False)
+
+    # A timestamp representing when this object was created.
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # A timestamp reprensenting when this object was last updated.
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Social authetication id field
+    social_auth_id = models.CharField(
+        db_index=False, max_length=255,
+        default=create_unique_social_id_number
+    )
 
     # More fields required by Django when specifying a custom user model.
 

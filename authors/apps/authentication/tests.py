@@ -60,6 +60,9 @@ class ViewTestCase(TestCase):
         self.user_data = {"user": {"username": "samuel",
                                    "email": "samuel@gmail.com",
                                    "password": "password"}}
+        self.user_data_token = {"user": {"username": "user1",
+                                   "email": "user1@gmail.com",
+                                   "password": "password"}}
         self.user_existing_email = {'user': {
                                     'username': 'samuel',
                                     'email': 'samuel@gmail.com',
@@ -85,6 +88,8 @@ class ViewTestCase(TestCase):
                                     'email': 'samuel@gmail.com',
                                     'password': 'password/*'}}
         self.login_details = {
+            "user": {"email": "samuel@gmail.com", "password": "password"}}
+        self.login_details_token = {
             "user": {"email": "samuel@gmail.com", "password": "password"}}
         self.login_invalid_email = {
             "user": {"email": "samuelgmail.com", "password": "jakejake"}}
@@ -158,3 +163,18 @@ class ViewTestCase(TestCase):
         response = self.client.post(
             '/api/users/login/', self.login_invalid_email, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_token_received_on_registration(self):
+        """Tests that user will receive a token on successfil registration"""
+        response = self.client.post(
+            '/api/users/', self.user_data_token, format="json")
+        self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
+        assert "auth_token" in response.data
+    
+    def test_token_received_on_login(self):
+        """Tests that user will receive a token on successfil login"""
+        response = self.client.post(
+            '/api/users/login/', self.login_details_token, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert "auth_token" in response.data
+

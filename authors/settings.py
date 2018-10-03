@@ -85,7 +85,7 @@ WSGI_APPLICATION = 'authors.wsgi.application'
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
 DATABASES = {
-   'default': dj_database_url.config(default=config('DATABASE_URL')
+    'default': dj_database_url.config(default=config('DATABASE_URL')
 )}
 
 # Activate Django-Heroku.
@@ -136,6 +136,7 @@ CORS_ORIGIN_WHITELIST = (
     'localhost:4000',
 )
 
+
 # Tell Django about the custom `User` model we created. The string
 # `authentication.User` tells Django we are referring to the `User` model in
 # the `authentication` module. This module is registered above in a setting
@@ -148,4 +149,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'authors.apps.authentication.backends.JWTAuthentication',
     ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+       'authors.apps.authentication.backends.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', )
 }

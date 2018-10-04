@@ -1,13 +1,21 @@
+import os
+import ssl
+from datetime import datetime, timedelta
+
+import jwt
+import sendgrid
+from decouple import config
 from rest_framework import status
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sendgrid.helpers.mail import *
 
 from .renderers import UserJSONRenderer
 from .serializers import (
     LoginSerializer, RegistrationSerializer, UserSerializer
-)
+    )
 
 
 class RegistrationAPIView(APIView):
@@ -25,6 +33,10 @@ class RegistrationAPIView(APIView):
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        user_email = serializer.data['email']
+        ver_token = generate_ver_token(user_email)
+        send_verification_link(user_email, ver_token)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -73,3 +85,33 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+def generate_ver_token(email):
+    """
+    Generates a verification token on registering a user and has an expiry
+    date set to 60 days.
+    """
+    dt = datetime.now() + timedelta(days=60)
+    ver_token = jwt.encode({
+        'email': email,
+        'exp': int(dt.strftime('%s'))},
+        config('SECRET_KEY'), algorithm='HS256').decode('utf-8')
+    return ver_token
+
+
+def send_verification_link(user_email, token):
+    """
+    Sends a an email with a verification link upon successful
+    registration os a user.
+    """
+    ssl._create_default_https_context = ssl._create_unverified_context
+    sg = sendgrid.SendGridAPIClient(apikey=config('SENDGRID_API_KEY'))
+    from_email = Email("targaryen@authorshaven.com")
+    to_email = Email(user_email)
+    subject = "Authors Haven verification link"
+    content = Content(
+        "text/plain",
+        "Click on the link below to verify your account. \n http://{}".format(token))
+    mail = Mail(from_email, subject, to_email, content)
+    response = sg.client.mail.send.post(request_body=mail.get())
+    return response

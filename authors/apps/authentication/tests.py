@@ -1,9 +1,10 @@
 # tests for authentication application
-from django.test import TestCase
-from rest_framework.test import APIClient
-from rest_framework import status
-
 from authors.apps.authentication.models import User, UserManager
+from authors.apps.authentication.views import (generate_ver_token,
+                                               send_verification_link)
+from django.test import TestCase
+from rest_framework import status
+from rest_framework.test import APIClient
 
 
 class ModelTestCase(TestCase):
@@ -179,3 +180,7 @@ class ViewTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         assert "auth_token" in response.data
 
+    def test_send_email_on_registration(self):
+        token = generate_ver_token(self.user_data['user']['email'])
+        res = send_verification_link(self.user_data['user']['email'], token)
+        self.assertEqual(res.status_code, status.HTTP_202_ACCEPTED)

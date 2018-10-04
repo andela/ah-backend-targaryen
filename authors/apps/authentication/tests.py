@@ -1,8 +1,9 @@
 # tests for authentication application
 from django.test import TestCase
-from authors.apps.authentication.models import User, UserManager
 from rest_framework.test import APIClient
 from rest_framework import status
+
+from authors.apps.authentication.models import User, UserManager
 
 
 class ModelTestCase(TestCase):

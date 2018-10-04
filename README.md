@@ -1,6 +1,8 @@
 Authors Haven - A Social platform for the creative at heart.
 =======
 [![Maintainability](https://api.codeclimate.com/v1/badges/0abec8662075a89b6d0b/maintainability)](https://codeclimate.com/github/andela/ah-backend-targaryen/maintainability)
+[![Build Status](https://travis-ci.org/andela/ah-backend-targaryen.svg?branch=develop)](https://travis-ci.org/andela/ah-backend-targaryen)
+=======
 
 ## Vision
 Create a community of like minded authors to foster inspiration and innovation

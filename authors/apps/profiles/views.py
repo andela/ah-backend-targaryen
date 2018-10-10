@@ -1,6 +1,9 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import (
+    RetrieveUpdateAPIView,
+    RetrieveAPIView
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -46,3 +49,15 @@ class ProfileRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         serializer.update(request.user, serializer_data)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProfileList(RetrieveAPIView):
+    renderer_classes = (ProfileJSONRenderer,)
+    serializer_class = ProfileSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def retrieve(self, request, *args, **kwargs):
+        queryset = Profile.objects.all()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response({"users": serializer.data}, status=status.HTTP_200_OK)

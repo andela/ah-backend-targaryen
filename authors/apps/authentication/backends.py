@@ -2,8 +2,7 @@ import jwt
 from decouple import config
 from django.conf import settings
 from rest_framework import authentication, exceptions
-from rest_framework.authentication import (
-    BaseAuthentication, get_authorization_header)
+from rest_framework.authentication import BaseAuthentication, get_authorization_header
 
 from .models import User
 

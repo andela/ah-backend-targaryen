@@ -1,10 +1,11 @@
-import jwt
 from datetime import datetime, timedelta
+
+import jwt
 from decouple import config
 from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin
-)
+    )
 from django.db import models
 from authors.apps.core.models import TimeStampedModel
 

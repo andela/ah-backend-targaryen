@@ -1,7 +1,12 @@
 # tests for authentication application
 from authors.apps.authentication.models import User, UserManager
-from authors.apps.authentication.views import (generate_ver_token,
-                                               send_verification_link)
+from authors.apps.authentication.views import (
+    generate_ver_token, send_verification_link
+    )
+import datetime
+
+import jwt
+from decouple import config
 from django.test import TestCase
 from rest_framework import serializers, status
 from rest_framework.test import APIClient
@@ -99,6 +104,27 @@ class ViewTestCase(TestCase):
             'username': 'sam',
             'email': 'samuel@gmail.com',
             'password': 'pwd1'}}
+        self.user_forgotten_password = {'user': {
+                                    'username': 'samuel',
+                                    'email': 'samuel@gmail.com'}}
+        self.user_update_password = {"user": {"username": "samuel",
+                                   "email": "samuel@gmail.com",
+                                   "password": "password123"}}
+        self.no_such_user_update_password = {"user": {"username": "buttons",
+                                   "email": "buttons@gmail.com",
+                                   "password": "password123"}}
+        self.token = jwt.encode(
+                {
+                    'name': self.user_forgotten_password['user']['username'],
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(
+                        minutes=60)},
+                config('SECRET_KEY')).decode('UTF-8')
+        self.non_existing_user_token = jwt.encode(
+                {
+                    'name': self.no_such_user_update_password['user']['username'],
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(
+                        minutes=60)},
+                config('SECRET_KEY')).decode('UTF-8')
         self.login_details = {
             "user": {"email": "samuel@gmail.com", "password": "password1"}}
         self.login_details_token = {
@@ -167,6 +193,33 @@ class ViewTestCase(TestCase):
             '/api/users/', self.user_password_less_than_eight, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_send_link_to_email(self):
+        """Tests that a user can receive an email with token"""
+        response = self.client.post(
+            '/api/users/password_reset/', self.user_forgotten_password, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_update_password(self):
+        """Tests that a user can update their password"""
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.put(
+            '/api/users/password_update/', self.user_update_password, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_wrong_credentials_for_update_password(self):
+        """Tests that a user can update their password"""
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + 'wrong123token')
+        response = self.client.put(
+            '/api/users/password_update/', self.user_update_password, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_does_not_exist_for_update_password(self):
+        """Tests that a user can update their password"""
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.non_existing_user_token)
+        response = self.client.put(
+            '/api/users/password_update/', self.no_such_user_update_password, format="json")
+        self.assertIn("No user was found", str(response.data))
+
     def test_login_a_user(self):
         """ Test login a registered user """
         response = self.client.post(
@@ -206,7 +259,7 @@ class ViewTestCase(TestCase):
         assert "auth_token" in response.data
 
     def test_send_email_on_registration(self):
-        token = generate_ver_token(self.user_data['user']['email'])
+        token = generate_ver_token(self.user_data['user']['email'], 60)
         res = send_verification_link(self.user_data['user']['email'], token)
         self.assertEqual(res.status_code, status.HTTP_202_ACCEPTED)
 
@@ -233,17 +286,17 @@ class ValidatorsTestCase(TestCase):
         """Test the validator for invalid email"""
         self.assertRaises(
             serializers.ValidationError,
-            self.validator.is_email_valid(
+            lambda: self.validator.is_email_valid(
                 self.user['user']['email']))
 
-    def test_validator_for_email(self):
+    def test_validator_for_password_length(self):
         """Test the validator for password less than eight characters"""
         self.assertRaises(
             serializers.ValidationError,
             lambda: self.validator.is_password_valid(
                 self.user['user']['password1']))
 
-    def test_validator_for_email(self):
+    def test_validator_for_password_alphanumeric(self):
         """Test the validator for non alphanumeric password"""
         self.assertRaises(
             serializers.ValidationError,

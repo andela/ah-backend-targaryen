@@ -27,38 +27,43 @@ class ViewTest(TestCase):
         self.title = 'test article'
         self.description = 'an article to test model'
         self.body = 'This article will test our model'
+        self.tagList = [ "articles", "authors", "TEST"]
 
         self.article = {'article': {'title': self.title,
                                     'description': self.description,
                                     'body': self.body}}
+        self.article_with_tags = {'article': {'title': self.title,
+                                    'description': self.description,
+                                    'body': self.body,
+                                    'tagList': self.tagList}}
         self.update_data = {'article': {'body': "This ought to work"}}
   
-    
-    def test_can_create_article(self):
-        response = self.client.post('/api/articles/', self.article,
+        self.response = self.client.post('/api/articles/', self.article,
                                     format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.response1 = self.client.post('/api/articles/',
+                                     self.article, format="json")
+        self.response3 = self.client.post('/api/articles/', self.article_with_tags,
+                                    format="json")
+    def test_can_create_article(self):
+        self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
+
+    def test_can_create_article_with_tags(self):
+        self.assertEqual(self.response3.status_code, status.HTTP_201_CREATED)
 
     def test_can_get_article(self):
-        response = self.client.post('/api/articles/', self.article,
-                                    format="json")
         result = self.client.get('/api/articles/{}/'
-                                 .format(response.data['article']['slug']))
+                                 .format(self.response.data['article']['slug']))
         self.assertEqual(result.status_code, status.HTTP_200_OK)
 
     def test_can_update_article(self):
-        response = self.client.post('/api/articles/', self.article,
-                                    format="json")
         result = self.client.put('/api/articles/{}/'
-                                 .format(response.data['article']['slug']),
+                                 .format(self.response.data['article']['slug']),
                                  self.update_data, format="json")
         self.assertEqual(result.status_code, status.HTTP_200_OK)
 
     def test_can_delete_article(self):
-        response = self.client.post('/api/articles/', self.article,
-                                    format="json")
         result = self.client.delete('/api/articles/{}/'
-                                    .format(response.data['article']['slug']))
+                                    .format(self.response.data['article']['slug']))
         self.assertEqual(result.status_code, status.HTTP_204_NO_CONTENT)        
     
     def test_can_not_edit_unless_author(self):
@@ -71,11 +76,7 @@ class ViewTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_can_create_unique_slug(self):
-        response = self.client.post('/api/articles/',
-                                    self.article, format="json")
-        response1 = self.client.post('/api/articles/',
-                                     self.article, format="json")
-        self.assertNotEqual(response, response1)
+        self.assertNotEqual(self.response, self.response1)
 
     def test_can_get_all_articles(self):
         self.client.post('/api/articles/', self.article, format="json")
@@ -86,3 +87,7 @@ class ViewTest(TestCase):
     def test_cannot_get_article_that_doesnot_exist(self):
         response = self.client.get('/api/articles/{}/'.format("no-work-here"))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_can_get_all_tags(self):
+        result = self.client.get('/api/tags/')
+        self.assertEqual(result.status_code, status.HTTP_200_OK)

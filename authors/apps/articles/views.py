@@ -1,13 +1,22 @@
 from authors.apps.authentication.backends import JWTAuthentication
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticatedOrReadOnly,
+    IsAuthenticated
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Article
+from .models import (
+    Article,
+    Tag
+)
 from authors.apps.profiles.serializers import ProfileSerializer
 from .renderers import ArticleJSONRenderer
-from .serializers import ArticleSerializer
+from .serializers import (
+    ArticleSerializer,
+    TagSerializer
+)
 
 
 class CreateArticle(generics.CreateAPIView):
@@ -57,7 +66,8 @@ class ArticleRetrieveUpdate(APIView):
                              "body": serializer.data['body'],
                              "createdAt": serializer.data['createdAt'],
                              "updatedAt": serializer.data['updatedAt'],
-                             "slug": serializer.data['slug']
+                             "slug": serializer.data['slug'],
+                             "tagList": serializer.data['tagList'],
                             },
                  "message": "Success"
                  },
@@ -100,3 +110,19 @@ class ArticleList(generics.ListAPIView):
     def get_queryset(self):
         queryset = Article.objects.all()
         return queryset
+
+
+class TagList(generics.ListAPIView):
+    """Class to get a list of existing tags"""
+
+    queryset = Tag.objects.all()
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TagSerializer
+
+    def list(self, request):
+        serializer_data = self.get_queryset()
+        serializer = self.serializer_class(serializer_data, many=True)
+        return Response({
+            'tags': serializer.data
+        }, status=status.HTTP_200_OK)
+        

@@ -17,6 +17,9 @@ class Article(models.Model):
     body = models.TextField(null=True)
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
     updatedAt = models.DateTimeField(auto_now=True, null=True)
+    tags = models.ManyToManyField(
+        'articles.Tag', related_name='articles'
+    )
 
     @staticmethod
     def get_article(slug):
@@ -74,3 +77,15 @@ class Article(models.Model):
         if not self.slug:
             self.slug = self._get_unique_slug()
         super().save(*args, **kwargs)
+
+
+class Tag(models.Model):
+    """Model for tags """
+    
+    tag = models.CharField(max_length=255)
+    createdAt = models.DateTimeField(auto_now_add=True, null=True)
+    updatedAt = models.DateTimeField(auto_now=True, null=True)
+    
+    def __str__(self):
+        return self.tag
+        

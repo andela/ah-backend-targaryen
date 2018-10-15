@@ -4,6 +4,7 @@ from django.utils.text import slugify
 
 from authors.apps.profiles.models import Profile
 from authors.apps.authentication.models import User
+from authors.apps.core.models import TimeStampedModel
 
 
 class Article(models.Model):
@@ -24,6 +25,7 @@ class Article(models.Model):
     dislikes = models.PositiveIntegerField(default=0)
     favourite_count = models.PositiveIntegerField(default=0)
     reading_time = models.CharField(max_length=100, null=True)
+    comment_count = models.PositiveIntegerField(default=0)
 
     @staticmethod
     def get_article(slug):
@@ -136,3 +138,59 @@ class Reaction(models.Model):
 
     def __int__(self):
         return self.article_id
+
+
+class Comment(TimeStampedModel):
+    """Model for comments on articles"""
+    body = models.TextField(null=True)
+    author = models.ForeignKey(
+        'profiles.Profile',
+        on_delete=models.CASCADE,
+        null=True
+    )
+    article = models.ForeignKey(
+        'articles.Article',
+        on_delete=models.CASCADE,
+        null=True
+    )
+    parent = models.TextField(null=True, blank=True)
+    thread_count = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.body
+
+    @staticmethod
+    def comment_article(count, slug_param):
+        article = Article.get_article(slug=slug_param)
+        article.__dict__.update(comment_count=count)
+        article.save()
+
+    def get_count(self, slug):
+        self.slug = slug
+        article = Article.objects.get(slug=self.slug)
+        return article.comment_count
+    
+    @staticmethod
+    def thread_comment(count, id_param):
+        comment = Comment.objects.get(id=id_param)
+        comment.__dict__.update(thread_count=count)
+        comment.save()
+    
+    def get_thread_count(self, id):
+        self.id = id
+        comment = Comment.objects.get(id=self.id)
+        return comment.thread_count
+    
+    @staticmethod
+    def thread_comment_delete(count, id_param):
+        comment = Comment.objects.get(id=id_param)
+        parent_comment = Comment.objects.get(id=comment.parent)
+        parent_comment.__dict__.update(thread_count=count)
+        parent_comment.save()
+    
+    def get_thread_count_delete(self, id):
+        self.id = id
+        comment = Comment.objects.get(id=self.id)
+        parent_comment = Comment.objects.get(id=comment.parent)
+        # import pdb; pdb.set_trace()
+        return parent_comment.thread_count

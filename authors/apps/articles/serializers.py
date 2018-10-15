@@ -1,6 +1,12 @@
 from rest_framework import exceptions, serializers
 
-from .models import Article, Impression, Reaction, Tag
+from .models import (
+    Article,
+    Impression,
+    Reaction,
+    Tag,
+    Comment
+)
 from .relations import TagRelatedField
 
 
@@ -14,7 +20,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         fields = [
             'author', 'title', 'description', 'body',
             'createdAt', 'updatedAt', 'slug', 'favourite_count',
-            'likes', 'dislikes', 'tagList', 'reading_time'
+            'likes', 'dislikes', 'tagList', 'reading_time', 'comment_count'
         ]
 
     def create(self, validated_data):
@@ -119,5 +125,26 @@ class ReactionSerializer(serializers.ModelSerializer):
         article = self.context.get('article', None)
         reaction = self.context.get('reaction', None)
         return Reaction.objects.create(
-            user=user, article=article, reaction=reaction
+            user=user, article=article, reaction=reaction)
+
+
+class CommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'author', 'article', 'body',
+            'parent', 'created_at', 'updated_at', 'thread_count'
+        ]
+
+    def create(self, validated_data):
+        author = self.context.get('author', None)
+        article = self.context.get('article', None)
+        parent = self.context.get('parent', None)
+
+        return Comment.objects.create(
+            author=author,
+            article=article,
+            parent=parent,
+            **validated_data
         )

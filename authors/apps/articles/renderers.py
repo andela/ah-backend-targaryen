@@ -1,6 +1,8 @@
 import json
 from rest_framework.renderers import JSONRenderer
 
+from authors.apps.core.renderers import AuthorsJSONRenderer
+
 
 class ArticleJSONRenderer(JSONRenderer):
     """Class for JSON renderer for Artiles app"""
@@ -24,3 +26,13 @@ class ReactionJSONRenderer(JSONRenderer):
         :return JSON object with key reaction"""
 
         return json.dumps({'reaction': data})
+
+
+class CommentJSONRenderer(AuthorsJSONRenderer):
+    """Renderer for the comments"""
+    object_label = 'comments'
+
+
+class ThreadJSONRenderer(AuthorsJSONRenderer):
+    """Renderer for the comments"""
+    object_label = 'thread'

@@ -16,19 +16,24 @@ from .models import (
     Article,
     Reaction,
     Impression,
-    Tag
+    Tag,
+    Comment
 )
 from authors.apps.authentication.backends import JWTAuthentication
 from authors.apps.profiles.serializers import ProfileSerializer
+from authors.apps.articles.exceptions import NotFoundException
 
 from .renderers import (
     ArticleJSONRenderer,
-    ReactionJSONRenderer
+    ReactionJSONRenderer,
+    CommentJSONRenderer,
+    ThreadJSONRenderer
 )
 from .serializers import (
     ArticleSerializer,
     ReactionSerializer,
-    TagSerializer
+    TagSerializer,
+    CommentSerializer
 )
 
 
@@ -86,7 +91,8 @@ class ArticleRetrieveUpdate(APIView):
                              "likes": serializer.data['likes'],
                              "dislikes": serializer.data['dislikes'],
                              "tagList": serializer.data['tagList'],
-                             "reading_time": serializer.data['reading_time']
+                             "reading_time": serializer.data['reading_time'],
+                             "comment_count": serializer.data['comment_count']
                             },
                  "message": "Success"
                  },
@@ -243,3 +249,156 @@ class ReactionView(APIView):
         except Reaction.DoesNotExist:
             message = 'You have not yet interacted with this article'
             raise exceptions.ParseError(message)
+
+
+class CommentListCreateAPIView(generics.ListCreateAPIView):
+    renderer_classes = (CommentJSONRenderer,)
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+    queryset = Comment.objects.all()
+
+    def post(self, request, slug):
+        try:
+            serializer_context = {
+                'author': request.user.profile,
+                'article': Article.objects.get(slug=slug)
+            }
+            serializer_data = request.data.get('comment', {})
+
+            serializer = self.serializer_class(
+                data=serializer_data,
+                context=serializer_context
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            comment = Comment()
+            count = comment.get_count(slug=slug)
+            new_count = count + 1
+            Comment.comment_article(count=new_count, slug_param=slug)
+
+        except Article.DoesNotExist:
+            raise NotFoundException("The Article does not exist")
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get(self, request, slug, *args, **kwargs):
+        comment = Comment.objects.select_related('article').filter(
+            article__slug=slug
+        )
+        main_comment = comment.filter(parent=None).order_by('id')
+
+        serializer = self.serializer_class(main_comment, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CommentRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    renderer_classes = (CommentJSONRenderer,)
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def update(self, request, slug, id, *args, **kwargs):
+        try:
+            serializer_context = {
+                'author': request.user.profile,
+                'id': Comment.objects.get(id=id)
+            }
+            serializer_data = request.data.get('comment', {})
+
+            serializer = self.serializer_class(
+                data=serializer_data,
+                context=serializer_context,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.update(serializer_context["id"], serializer_data)
+        except Comment.DoesNotExist:
+            raise NotFoundException("The comment does not exist")
+
+        return Response(
+            {"updated_body": serializer.data["body"]},
+            status=status.HTTP_200_OK
+        )
+
+    def destroy(self, instance, slug, id):
+        try:
+            comment = Comment.objects.get(id=id)
+            comment_count = Comment()
+
+            count = comment_count.get_count(slug=slug)
+            new_count = count - 1
+            Comment.comment_article(count=new_count, slug_param=slug)
+
+            if comment.parent is not None:
+                thread_count = comment_count.get_thread_count_delete(id=id)
+                new_thread_count = thread_count - 1
+                if new_thread_count < 0:
+                    new_thread_count = 0
+                Comment.thread_comment_delete(count=new_thread_count, id_param=id)
+            comment.delete()
+        except Article.DoesNotExist:
+            raise NotFoundException("The Article does not exist")
+        except Comment.DoesNotExist:
+            raise NotFoundException("The comment does not exist")
+
+        return Response(
+            {"message": "comment has been deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class ThreadListCreateAPIView(generics.ListCreateAPIView):
+    renderer_classes = (ThreadJSONRenderer,)
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+    queryset = Comment.objects.all()
+
+    def post(self, request, slug, id):
+        try:
+            if Comment.objects.get(id=id).parent is not None:
+                return Response(
+                    {"message": "Parent comment is already a sub comment"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer_context = {
+                'author': request.user.profile,
+                'article': Article.objects.get(slug=slug),
+                'parent': Comment.objects.get(id=id).id
+            }
+            serializer_data = request.data.get('comment', {})
+
+            serializer = self.serializer_class(
+                data=serializer_data,
+                context=serializer_context
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            comment = Comment()
+            count = comment.get_count(slug=slug)
+            new_count = count + 1
+            Comment.comment_article(count=new_count, slug_param=slug)
+
+            
+            thread_count = comment.get_thread_count(id=id)
+            new_thread_count = thread_count + 1
+            Comment.thread_comment(count=new_thread_count, id_param=id)
+
+        except Article.DoesNotExist:
+            raise NotFoundException("The Article does not exist")
+        except Comment.DoesNotExist:
+            raise NotFoundException("The parent comment does not exist")
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get(self, request, slug, id, *args, **kwargs):
+        comment = Comment.objects.select_related('article').filter(
+            article__slug=slug
+        )
+        main_comment = comment.filter(parent=id).order_by('id')
+
+        serializer = self.serializer_class(main_comment, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -13,7 +13,9 @@ from .relations import TagRelatedField
 class ArticleSerializer(serializers.ModelSerializer):
     """Create a new article"""
 
-    tagList = TagRelatedField(many=True, required=False, queryset=Tag.objects.all(), source='tags')
+    tagList = TagRelatedField(
+            many=True, required=False, 
+            queryset=Tag.objects.all(), source='tags')
 
     class Meta:
         model = Article
@@ -40,7 +42,6 @@ class TagSerializer(serializers.ModelSerializer):
 
     def to_representation(self, value):
         return value.tag
-        return Article.objects.create(author=author, **validated_data)
 
 
 class ReactionSerializer(serializers.ModelSerializer):

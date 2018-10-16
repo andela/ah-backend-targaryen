@@ -7,12 +7,11 @@ class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     bio = serializers.CharField(allow_blank=True, required=False)
     avatar = serializers.SerializerMethodField()
-    following = serializers.SerializerMethodField()
-    followers = serializers.SerializerMethodField()
+    reading_stats = serializers.CharField(max_length=100)
 
     class Meta:
         model = Profile
-        fields = ('username', 'bio', 'avatar', 'following', 'followers')
+        fields = ('username', 'bio', 'avatar', 'reading_stats', 'reading_stats')
         read_only_fields = ('username',)
     
     def get_avatar(self, obj):

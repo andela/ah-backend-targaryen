@@ -1,4 +1,4 @@
-# tests for authentication application
+# tests for profiles application
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -14,12 +14,19 @@ class ViewTestCase(TestCase):
         """Define the test client and test variables"""
         self.client = APIClient()
         self.unauthorized_client = APIClient()
+        self.client2 = APIClient()
 
         self.username = "johndoe"
         self.email = "johndoe@gmail.com"
         self.password = "Password1"
         self.bio = "johndoe bio"
         self.avatar = "https://google.com/pagenotfound/"
+        self.username2 = "user2"
+        self.email2 = "user2@gmail.com"
+        self.password2 = "Password2"
+        self.title = "Test Article"
+        self.description = "Test"
+        self.body = "We want to get a user's reading stats"
 
         self.other_username = "janedoe"
         self.other_email = "janedoe@gmail.com"
@@ -60,6 +67,18 @@ class ViewTestCase(TestCase):
         self.other_response = self.client.post(
             '/api/users/', self.other_user_data, format="json"
         )
+        self.user_data = {"user": {"username": self.username,
+                                   "email": self.email,
+                                   "password": self.password}}
+        self.profile_data = {"profile": {"username": self.username,
+                                         "bio": self.bio,
+                                         "avatar": self.avatar}}
+        self.user2_data = {"user": {"username": self.username2,
+                                    "email": self.email2,
+                                    "password": self.password2}}
+        self.article_data = {'article': {"title": self.title,
+                                         "description": self.description,
+                                         "body": self.body}}
 
         self.response = self.client.post(
             '/api/users/', self.user_data, format="json"
@@ -71,6 +90,14 @@ class ViewTestCase(TestCase):
 
         self.follow_response = self.client.post(
             '/api/profiles/{}/follow/'.format(self.other_username)
+        )
+
+        self.response2 = self.client2.post(
+            '/api/users/', self.user2_data, format="json"
+        )
+
+        self.client2.credentials(
+            HTTP_AUTHORIZATION='Token ' + self.response2.data['auth_token']
         )
 
     def test_profile_retreival(self):
@@ -173,3 +200,49 @@ class ViewTestCase(TestCase):
             '/api/profiles/{}/follow/'.format(self.other_username)
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_read_stats_of_a_user(self):
+        """Tests getting the user's reading stats"""
+        res = self.client2.post('/api/articles/', self.article_data,
+                                format="json")
+        self.client.get('/api/articles/{}/'
+                        .format(res.data['article']['slug']))
+        response = self.client.get(
+            '/api/profiles/{}/'.format(self.username)
+        )
+        self.assertEqual(response.data['reading_stats'], '1 minute')
+
+    def test_get_read_stats_after_reading_own_article(self):
+        res = self.client.post(
+            '/api/articles/', self.article_data, format="json"
+        )
+        self.client.get('/api/articles/{}/'
+                        .format(res.data['article']['slug'])
+        )
+        response = self.client.get(
+            '/api/profiles/{}/'.format(self.username)
+        )
+        self.assertEqual(response.data['reading_stats'], '0 minutes')
+
+    def test_get_read_stats_after_reading_very_long_article(self):
+        s = "The software landscape is constantly changing, \
+        and you need to learn to change with it. New languages, \
+        tools, technologies, concepts, and approaches are constantly \
+        being introduced into the software ecosystem. It is imperative for a \
+        developer to learn how to.."
+        long_body = ""
+        for x in range(10):
+            long_body += s
+        article_data = {'article': {"title": "Test",
+                                         "description": "Test",
+                                         "body": long_body}}
+        res = self.client2.post(
+            '/api/articles/', article_data, format="json"
+        )
+        self.client.get(
+            '/api/articles/{}/'.format(res.data['article']['slug'])
+        )
+        response = self.client.get(
+            '/api/profiles/{}/'.format(self.username)
+        )
+        self.assertEqual(response.data['reading_stats'], '2 minutes')

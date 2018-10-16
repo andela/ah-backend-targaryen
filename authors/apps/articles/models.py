@@ -23,6 +23,7 @@ class Article(models.Model):
     likes = models.PositiveIntegerField(default=0)
     dislikes = models.PositiveIntegerField(default=0)
     favourite_count = models.PositiveIntegerField(default=0)
+    reading_time = models.CharField(max_length=100, null=True)
 
     @staticmethod
     def get_article(slug):
@@ -49,6 +50,24 @@ class Article(models.Model):
             message = "You are not authenticated for the action"
             raise exceptions.PermissionDenied(message)
         return article.delete()
+
+    @staticmethod
+    def article_reading_time(body):
+        new_line_words = body.split('\n')
+
+        total_words = 0
+        for group in new_line_words:
+            total_words += len(group.split())
+
+        # Assume a reading time of 275WPM
+        time_to_read = (total_words/275)
+        if time_to_read < 1:
+            return 'Less than a minute'
+        elif time_to_read < 2:
+            return 'About 1 minute'
+
+        # Return a value rounded up or down if below or above 5
+        return str(int(round(time_to_read))) + ' minutes'
 
     @staticmethod
     def get_profile(profile_id):

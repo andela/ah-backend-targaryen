@@ -20,7 +20,7 @@ from .models import (
     Comment
 )
 from authors.apps.authentication.backends import JWTAuthentication
-from authors.apps.profiles.serializers import ProfileSerializer
+from authors.apps.profiles.serializers import ProfileListSerializer
 from authors.apps.articles.exceptions import NotFoundException
 
 from .renderers import (
@@ -76,7 +76,7 @@ class ArticleRetrieveUpdate(APIView):
         serializer = self.serializer_class(article)
 
         profile = Article.get_profile(serializer.data['author'])
-        profile_serializer = ProfileSerializer(profile)
+        profile_serializer = ProfileListSerializer(profile)
 
         return Response(
                 {"article": {

@@ -9,7 +9,8 @@ from .views import (
     CommentListCreateAPIView,
     CommentRetrieveUpdateDestroyAPIView,
     ThreadListCreateAPIView,
-    ShareArticle
+    ShareArticle,
+    BookmarkAPIView
 )
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
          ThreadListCreateAPIView.as_view()
          ),
     path('article/share/', ShareArticle.as_view()),
+    path('articles/<str:slug>/bookmark/', BookmarkAPIView.as_view())
 ]

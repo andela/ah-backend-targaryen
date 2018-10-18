@@ -10,7 +10,8 @@ from .views import (
     CommentRetrieveUpdateDestroyAPIView,
     ThreadListCreateAPIView,
     ShareArticle,
-    ReturnArticle
+    ReturnArticle,
+    RateView
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path('article/share/', ShareArticle.as_view()),
     path('article/my-articles/', ReturnArticle.as_view()),
     
+    path('articles/<str:slug>/rate/', RateView.as_view()),
 ]

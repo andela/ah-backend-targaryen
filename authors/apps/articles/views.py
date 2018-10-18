@@ -21,13 +21,15 @@ from rest_framework.permissions import (
 from pyisemail import is_email
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Avg, Count
 
 from .models import (
     Article,
     Reaction,
     Impression,
     Tag,
-    Comment
+    Comment,
+    Rate
 )
 from authors.apps.authentication.backends import JWTAuthentication
 from authors.apps.profiles.serializers import ProfileListSerializer
@@ -44,7 +46,8 @@ from .serializers import (
     ReactionSerializer,
     TagSerializer,
     CommentSerializer,
-    ShareArticleSerializer
+    ShareArticleSerializer,
+    RateSerializer
 )
 
 
@@ -114,7 +117,8 @@ class ArticleRetrieveUpdate(APIView):
                              "dislikes": serializer.data['dislikes'],
                              "tagList": serializer.data['tagList'],
                              "reading_time": serializer.data['reading_time'],
-                             "comment_count": serializer.data['comment_count']
+                             "comment_count": serializer.data['comment_count'],
+                             "rating": serializer.data['rating']
                             },
                  "message": "Success"
                  },
@@ -500,3 +504,43 @@ def send_mail(sender_email, receiver_mail, mail_subject, content):
     mail = Mail(from_email, subject, to_email, content)
     response = sg.client.mail.send.post(request_body=mail.get())
     return response
+
+
+class RateView(APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = RateSerializer
+
+    def average_rating(self, article):
+       ratings = Rate.objects.filter(
+           article=article.id).aggregate(Avg('rating'))
+       if ratings['rating__avg'] == None:
+           return 0
+       else:
+           average_rating = float(ratings['rating__avg'])
+           return round(average_rating, 2)
+
+    def post(self, request, slug):
+        rate = request.data.get("rate")
+        article = Article.get_article(slug=slug)
+        data = {
+            "rating": rate,
+            "user": request.user.id,
+            "article": article.id
+        }
+        serializer_context = {
+            "rating": rate,
+            "user": request.user,
+            "article": article
+        }
+        serializer = self.serializer_class(
+            data=data, context=serializer_context
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        avg_rating = self.average_rating(article)
+        Article.objects.filter(slug=slug).update(rating=avg_rating)
+
+        return Response(
+            {"data": serializer.data, "average_rating": avg_rating},
+            status=status.HTTP_200_OK
+        )

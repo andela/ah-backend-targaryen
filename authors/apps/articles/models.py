@@ -1,6 +1,7 @@
 from django.db import models
 from rest_framework import exceptions
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from authors.apps.profiles.models import Profile
 from authors.apps.authentication.models import User
@@ -10,8 +11,9 @@ from authors.apps.core.models import TimeStampedModel
 class Article(models.Model):
     """Model for an article"""
 
-    author = models.ForeignKey('profiles.Profile', on_delete=models.CASCADE,
-                               null=True)
+    author = models.ForeignKey(
+        'profiles.Profile', on_delete=models.CASCADE, null=True
+    )
     slug = models.SlugField(max_length=140, unique=True, null=True)
     title = models.CharField(max_length=150, null=True)
     description = models.CharField(max_length=255, null=True)
@@ -26,6 +28,7 @@ class Article(models.Model):
     favourite_count = models.PositiveIntegerField(default=0)
     reading_time = models.CharField(max_length=100, null=True)
     comment_count = models.PositiveIntegerField(default=0)
+    rating = models.DecimalField(default=0, max_digits=5, decimal_places=2)
 
     @staticmethod
     def get_article(slug):
@@ -111,8 +114,7 @@ class Tag(models.Model):
     updatedAt = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
-        return self.tag
-   
+        return self.tag  
 
 
 class Impression(models.Model):
@@ -194,3 +196,15 @@ class Comment(TimeStampedModel):
         parent_comment = Comment.objects.get(id=comment.parent)
         # import pdb; pdb.set_trace()
         return parent_comment.thread_count
+
+
+class Rate(models.Model):
+    user = models.ForeignKey(
+        User, models.SET_NULL, blank=False, null=True,
+    )
+    article = models.ForeignKey(
+        Article, models.SET_NULL, blank=False, null=True,
+    )
+    rating = models.IntegerField(
+        default=0, validators=[MinValueValidator(1), MaxValueValidator(5)]
+        )

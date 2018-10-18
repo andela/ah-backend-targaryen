@@ -4,6 +4,9 @@ from rest_framework import serializers
 
 from .models import User
 from .validators import ValidateUserDetails
+from .social_login.facebook_auth import FacebookAuthentication
+from .social_login.google_auth import GoogleAuthentication
+from .social_login.common import create_user_and_return_token
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -168,3 +171,52 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class FacebookAuthSerializer(serializers.Serializer):
+    """ Performs facebook authorisation"""
+
+    access_token = serializers.CharField()
+
+    def validate_access_token(self, access_token):
+        """
+        This method validates the token received
+        :param access_token:
+        :return: auth_token
+        """
+        user_data = FacebookAuthentication.validate_token(access_token)
+
+        try:
+            user_data['id']
+        except:
+            msg = "Invalid or expired token"
+            raise serializers.ValidationError(msg)
+
+        return create_user_and_return_token(
+            user_data['id'], user_data['name'], user_data['email']
+        )
+
+
+class GoogleAuthSerializer(serializers.Serializer):
+    """ Performs Google authorisation """
+
+    access_token = serializers.CharField()
+    refresh_token = serializers.CharField(write_only=True, required=False, default=None)
+
+
+    def validate_access_token(self, access_token):
+        """
+        Handles all operations related to the google access token
+        :param access_token:
+        :return: auth_token
+        """
+        user_info = GoogleAuthentication.validate_google_token(access_token)
+        try:
+            user_info['sub']
+        except:
+            msg = "Invalid or expired token"
+            raise serializers.ValidationError(msg)
+        return create_user_and_return_token(
+            user_info['sub'], user_info['name'], user_info['email']
+        )
+        

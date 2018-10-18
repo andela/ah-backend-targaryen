@@ -94,7 +94,7 @@ db.sqlite3
 
 # Migrations
 migrations/
-authors/apps/authentication/migrations/
+authors/apps/authentication/migrations/*
 
 #redundant folder
 ah-backend-targaryen/

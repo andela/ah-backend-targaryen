@@ -20,6 +20,9 @@ class Article(models.Model):
     tags = models.ManyToManyField(
         'articles.Tag', related_name='articles'
     )
+    likes = models.PositiveIntegerField(default=0)
+    dislikes = models.PositiveIntegerField(default=0)
+    favourite_count = models.PositiveIntegerField(default=0)
 
     @staticmethod
     def get_article(slug):
@@ -81,11 +84,36 @@ class Article(models.Model):
 
 class Tag(models.Model):
     """Model for tags """
-    
+
     tag = models.CharField(max_length=255)
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
     updatedAt = models.DateTimeField(auto_now=True, null=True)
-    
+
     def __str__(self):
         return self.tag
-        
+   
+
+
+class Impression(models.Model):
+    name = models.CharField(max_length=50)
+    description = models.CharField(max_length=100)
+    image = models.URLField(blank=True)
+
+
+class Reaction(models.Model):
+    '''
+    This model stores the likes,
+    dislikes and favourites that users add to articles
+    '''
+    article = models.ForeignKey(
+        Article, models.SET_NULL, blank=False, null=True,
+    )
+    user = models.ForeignKey(
+        User, models.SET_NULL, blank=False, null=True,
+    )
+    reaction = models.ForeignKey(
+        Impression, models.SET_NULL, blank=False, null=True,
+    )
+
+    def __int__(self):
+        return self.article_id

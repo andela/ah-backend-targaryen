@@ -12,3 +12,15 @@ class ArticleJSONRenderer(JSONRenderer):
         :return JSON object with key article"""
 
         return json.dumps({'article': data})
+
+
+class ReactionJSONRenderer(JSONRenderer):
+    """Class to render reactions"""
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        """Method to convert data to a specific format
+        :params data
+        :return JSON object with key reaction"""
+
+        return json.dumps({'reaction': data})

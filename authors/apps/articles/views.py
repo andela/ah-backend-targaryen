@@ -2,7 +2,8 @@ from authors.apps.authentication.backends import JWTAuthentication
 from rest_framework import generics, status
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
-    IsAuthenticated
+    IsAuthenticated,
+    AllowAny
 )
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -106,6 +107,7 @@ class ArticleList(generics.ListAPIView):
 
     renderer_classes = (ArticleJSONRenderer,)
     serializer_class = ArticleSerializer
+    permission_classes = (AllowAny,)
 
     def get_queryset(self):
         queryset = Article.objects.all()

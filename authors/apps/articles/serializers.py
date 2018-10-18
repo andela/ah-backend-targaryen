@@ -12,9 +12,9 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            'author', 'title', 'description',
-            'body', 'createdAt', 'updatedAt',
-            'slug', 'favourite_count', 'likes', 'dislikes', 'tagList'
+            'author', 'title', 'description', 'body',
+            'createdAt', 'updatedAt', 'slug', 'favourite_count',
+            'likes', 'dislikes', 'tagList', 'reading_time'
         ]
 
     def create(self, validated_data):

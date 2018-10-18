@@ -18,6 +18,7 @@ from .models import (
     Impression,
     Tag
 )
+from authors.apps.authentication.backends import JWTAuthentication
 from authors.apps.profiles.serializers import ProfileSerializer
 
 from .renderers import (
@@ -43,6 +44,8 @@ class CreateArticle(generics.CreateAPIView):
         serializer_context = {'author': request.user.profile}
         serializer_data = request.data.get('article', {})
 
+        time_to_read = Article.article_reading_time(serializer_data['body'])
+        serializer_data['readingTime'] = time_to_read
         serializer = self.serializer_class(data=serializer_data,
                                            context=serializer_context)
 
@@ -83,6 +86,7 @@ class ArticleRetrieveUpdate(APIView):
                              "likes": serializer.data['likes'],
                              "dislikes": serializer.data['dislikes'],
                              "tagList": serializer.data['tagList'],
+                             "reading_time": serializer.data['reading_time']
                             },
                  "message": "Success"
                  },

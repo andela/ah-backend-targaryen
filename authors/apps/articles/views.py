@@ -131,6 +131,7 @@ class ArticleList(generics.ListAPIView):
 
     renderer_classes = (ArticleJSONRenderer,)
     serializer_class = ArticleSerializer
+    permission_classes = (AllowAny,)
 
     def get_queryset(self):
         queryset = Article.objects.all()

@@ -148,3 +148,9 @@ class CommentSerializer(serializers.ModelSerializer):
             parent=parent,
             **validated_data
         )
+
+
+
+class ShareArticleSerializer(serializers.Serializer):
+    content = serializers.CharField()
+    share_with = serializers.CharField()

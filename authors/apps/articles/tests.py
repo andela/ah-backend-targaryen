@@ -27,6 +27,24 @@ class ViewTest(TestCase):
                 "password": self.password
             }
         }
+        self.share_data = {
+            "article": {
+                "share_with": "kakaemma1@gmail.com",
+                "content": "music-in-town"
+            }
+        }
+        self.invalid_email = {
+            "article": {
+                "share_with": "kakaemma.com",
+                "content": "music-in-town"
+            }
+        }
+        self.no_content = {
+            "article": {
+                "share_with": "",
+                "content": ""
+            }
+        }
 
         self.response = self.client.post(
             '/api/users/', self.user_data, format="json"
@@ -56,6 +74,10 @@ class ViewTest(TestCase):
                                      self.article, format="json")
         self.response3 = self.client.post('/api/articles/', self.article_with_tags,
                                     format="json")
+                                    
+    def method_to_call_on_route(self, end_point, endpoint_data):
+        response = self.client.post(end_point, endpoint_data, format="json" )
+        return response
 
     def test_can_create_article(self):
         response = self.client.post('/api/articles/', self.article,
@@ -111,6 +133,18 @@ class ViewTest(TestCase):
     def test_can_get_all_tags(self):
         result = self.client.get('/api/tags/')
         self.assertEqual(result.status_code, status.HTTP_200_OK)
+
+    def test_share_article(self):
+        resp = self.method_to_call_on_route('/api/article/share/', self.share_data)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_share_article_with_invalid_email(self):
+        response = self.method_to_call_on_route('/api/article/share/', self.invalid_email)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_share_article_with_no_content(self):
+        response = self.method_to_call_on_route('/api/article/share/', self.no_content)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class ReactionViewTest(TestCase):

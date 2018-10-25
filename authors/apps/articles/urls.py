@@ -8,7 +8,8 @@ from .views import (
     TagList,
     CommentListCreateAPIView,
     CommentRetrieveUpdateDestroyAPIView,
-    ThreadListCreateAPIView
+    ThreadListCreateAPIView,
+    ShareArticle
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path('articles/<str:slug>/comments/<int:id>/thread/',
          ThreadListCreateAPIView.as_view()
          ),
+    path('article/share/', ShareArticle.as_view()),
 ]

@@ -1,14 +1,24 @@
+import sendgrid
+from decouple import config
+from django.contrib.sites.shortcuts import get_current_site
 from authors.apps.authentication.backends import JWTAuthentication
+from sendgrid.helpers.mail import(
+    Email,
+    Mail,
+    Content
+)
 from rest_framework import (
     exceptions,
     generics,
-    status
+    status,
+    serializers
 )
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
     IsAuthenticated,
     AllowAny
 )
+from pyisemail import is_email
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -33,7 +43,8 @@ from .serializers import (
     ArticleSerializer,
     ReactionSerializer,
     TagSerializer,
-    CommentSerializer
+    CommentSerializer,
+    ShareArticleSerializer
 )
 
 
@@ -403,3 +414,78 @@ class ThreadListCreateAPIView(generics.ListCreateAPIView):
         serializer = self.serializer_class(main_comment, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ShareArticle(APIView):
+    """
+    This class handles sharing an article
+    """
+    permission_classes = (IsAuthenticated,)
+    renderer_classes = (ArticleJSONRenderer,)
+    serializer_class = ShareArticleSerializer
+
+    def post(self, request):
+        """
+        This method shares an articles
+        :param request: contains subject, content and recipient
+        :return: message and status code 200
+        """
+        sender = request.user.get_username()
+        begin_subject_with = request.user.username
+        share_data = request.data.get('article', {})
+        serializer = self.serializer_class(data=share_data)
+        serializer.is_valid(raise_exception=True)
+        host = str(get_current_site(request)) + '/api/articles/'
+
+        if not is_email(share_data['share_with']):
+            raise serializers.ValidationError({
+                    'email': 'Enter a valid email address.'
+                }
+            )
+        share_article(begin_subject_with,host, sender, share_data['share_with'],
+                      content=share_data['content']
+        )
+
+        return Response({"message": "Article has been successfully shared"},
+                        status=status.HTTP_200_OK
+        )
+
+
+def share_article(start_subject, host, sender, receiver_email, content):
+    """
+    This method formats how subject and content
+    :param host: current host
+    :param sender: senders email
+    :param receiver_email: email address for the recipient
+    :param content: the slug being shared
+    :return:
+    """
+    subject = "{} shared an article with you via Authors Haven".format(start_subject)
+    content = Content(
+                        "text/plain",
+                        "Hey there, \n {} "
+                        "via Authors Haven service has shared an article with you. "
+                        "Please click the link below to view the article."
+                        "\nhttp://{}{}/".format(start_subject, host, content)
+                    )
+    response = send_mail(sender, receiver_email, subject, content)
+    return response
+
+
+def send_mail(sender_email, receiver_mail, mail_subject, content):
+    """
+    This method shares sends out the email using send grid.
+    :param sender_email: enders email
+    :param receiver_mail: receiver's email
+    :param mail_subject: rmail subject
+    :param content: body to be shared
+    :return:
+    """
+    sg = sendgrid.SendGridAPIClient(apikey=config('SENDGRID_API_KEY'))
+    from_email = Email(sender_email)
+    to_email = Email(receiver_mail)
+    subject = mail_subject
+
+    mail = Mail(from_email, subject, to_email, content)
+    response = sg.client.mail.send.post(request_body=mail.get())
+    return response

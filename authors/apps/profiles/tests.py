@@ -21,19 +21,56 @@ class ViewTestCase(TestCase):
         self.bio = "johndoe bio"
         self.avatar = "https://google.com/pagenotfound/"
 
-        self.user_data = {"user": {"username": self.username,
-                                   "email": self.email,
-                                   "password": self.password}}
-        self.profile_data = {"profile": {"username": self.username,
-                                         "bio": self.bio,
-                                         "avatar": self.avatar}}
+        self.other_username = "janedoe"
+        self.other_email = "janedoe@gmail.com"
+        self.other_password = "Password1"
+        self.other_bio = "janedoe bio"
+        self.other_avatar = "https://google.com/pagenotfound/"
+
+        self.user_data = {
+            "user": {
+                "username": self.username,
+                "email": self.email,
+                "password": self.password
+            }
+        }
+        self.profile_data = {
+            "profile": {
+                "username": self.username,
+                "bio": self.bio,
+                "avatar": self.avatar
+            }
+        }
+        
+        self.other_user_data = {
+            "user": {
+                "username": self.other_username,
+                "email": self.other_email,
+                "password": self.other_password
+            }
+        }
+        self.other_profile_data = {
+            "profile": {
+                "username": self.other_username,
+                "bio": self.other_bio,
+                "avatar": self.other_avatar
+            }
+        }
+
+        self.other_response = self.client.post(
+            '/api/users/', self.other_user_data, format="json"
+        )
 
         self.response = self.client.post(
             '/api/users/', self.user_data, format="json"
         )
 
         self.client.credentials(
-            HTTP_AUTHORIZATION='Token ' + self.response.data['auth_token']
+            HTTP_AUTHORIZATION='Token {}'.format(self.response.data['auth_token'])
+        )
+
+        self.follow_response = self.client.post(
+            '/api/profiles/{}/follow/'.format(self.other_username)
         )
 
     def test_profile_retreival(self):
@@ -81,4 +118,58 @@ class ViewTestCase(TestCase):
     def test_unauthenticated_retrieval_of_all_user_profiles(self):
         """Tests that all profiles cant be retrieves without authentication"""
         response = self.unauthorized_client.get('/api/profile/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_follow_user(self):
+        self.assertEqual(self.follow_response.status_code, status.HTTP_200_OK)
+    
+    def test_follow_user_already_being_followed(self):
+        response = self.client.post(
+            '/api/profiles/{}/follow/'.format(self.other_username)
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_unfollow_user(self):
+        response = self.client.delete(
+            '/api/profiles/{}/unfollow/'.format(self.other_username)
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_follow_yourself(self):
+        response = self.client.delete(
+            '/api/profiles/{}/unfollow/'.format(self.username)
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_follow_non_existent_user(self):
+        response = self.client.post(
+            '/api/profiles/{}/follow/'.format("no_user")
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unfollow_non_existent_user(self):
+        response = self.client.delete(
+            '/api/profiles/{}/unfollow/'.format("no_user")
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_unfollow_user_not_being_followed(self):
+        self.client.delete(
+            '/api/profiles/{}/unfollow/'.format(self.other_username)
+        )
+        response = self.client.delete(
+            '/api/profiles/{}/unfollow/'.format(self.other_username)
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_unfollow_user_with_no_authentication(self):
+        response = self.unauthorized_client.delete(
+            '/api/profiles/{}/unfollow/'.format(self.other_username)
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_follow_user_with_no_authentication(self):
+        response = self.unauthorized_client.post(
+            '/api/profiles/{}/follow/'.format(self.other_username)
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

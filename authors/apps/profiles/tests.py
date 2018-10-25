@@ -1,77 +1,10 @@
 # tests for authentication application
-from django.test import TestCase
-from rest_framework.test import APIClient
+from authors.apps.authentication.tests import BaseTestCase
 from rest_framework import status
 
-from authors.apps.authentication.models import User
-from authors.apps.profiles.models import User
 
-
-class ViewTestCase(TestCase):
+class ViewTestCase(BaseTestCase):
     """Class with tests to do with profile views"""
-
-    def setUp(self):
-        """Define the test client and test variables"""
-        self.client = APIClient()
-        self.unauthorized_client = APIClient()
-
-        self.username = "johndoe"
-        self.email = "johndoe@gmail.com"
-        self.password = "Password1"
-        self.bio = "johndoe bio"
-        self.avatar = "https://google.com/pagenotfound/"
-
-        self.other_username = "janedoe"
-        self.other_email = "janedoe@gmail.com"
-        self.other_password = "Password1"
-        self.other_bio = "janedoe bio"
-        self.other_avatar = "https://google.com/pagenotfound/"
-
-        self.user_data = {
-            "user": {
-                "username": self.username,
-                "email": self.email,
-                "password": self.password
-            }
-        }
-        self.profile_data = {
-            "profile": {
-                "username": self.username,
-                "bio": self.bio,
-                "avatar": self.avatar
-            }
-        }
-        
-        self.other_user_data = {
-            "user": {
-                "username": self.other_username,
-                "email": self.other_email,
-                "password": self.other_password
-            }
-        }
-        self.other_profile_data = {
-            "profile": {
-                "username": self.other_username,
-                "bio": self.other_bio,
-                "avatar": self.other_avatar
-            }
-        }
-
-        self.other_response = self.client.post(
-            '/api/users/', self.other_user_data, format="json"
-        )
-
-        self.response = self.client.post(
-            '/api/users/', self.user_data, format="json"
-        )
-
-        self.client.credentials(
-            HTTP_AUTHORIZATION='Token {}'.format(self.response.data['auth_token'])
-        )
-
-        self.follow_response = self.client.post(
-            '/api/profiles/{}/follow/'.format(self.other_username)
-        )
 
     def test_profile_retreival(self):
         """Tests that a profile is created and retreived"""

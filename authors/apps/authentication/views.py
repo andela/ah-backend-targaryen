@@ -13,7 +13,10 @@ from rest_framework.views import APIView
 from sendgrid.helpers.mail import *
 
 from .backends import JWTAuthentication
-from .renderers import UserJSONRenderer
+from authors.apps.authentication.mixins import (
+    AttributeMixins,
+    AuthenticatedUserMixins
+)
 from .serializers import (
     LoginSerializer,
     RegistrationSerializer,
@@ -64,10 +67,8 @@ def send_verification_link(user_email, token):
     return response
 
 
-class RegistrationAPIView(APIView):
+class RegistrationAPIView(AttributeMixins, APIView):
     # Allow any user (authenticated or not) to hit this endpoint.
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
     serializer_class = RegistrationSerializer
 
     def post(self, request):
@@ -87,9 +88,7 @@ class RegistrationAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class LoginAPIView(APIView):
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
+class LoginAPIView(AttributeMixins, APIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
@@ -105,11 +104,9 @@ class LoginAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ResetPasswordAPIView(APIView):
+class ResetPasswordAPIView(AttributeMixins, APIView):
     '''This view class is accessed using a post method which is
     used to send a token to a users email'''
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
     serializer_class = UserSerializer
     # authentication_classes = (TokenAuthentication,)
     # permission_classes = (IsAuthenticated,)
@@ -134,11 +131,9 @@ class ResetPasswordAPIView(APIView):
             {'message': 'Check your email for reset password'}, status=status.HTTP_200_OK)
 
 
-class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
-    renderer_classes = (UserJSONRenderer,)
+class UserRetrieveUpdateAPIView(AuthenticatedUserMixins, RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (IsAuthenticated,)
 
     def retrieve(self, request, *args, **kwargs):
         # There is nothing to validate or save here. Instead, we just want the
@@ -172,29 +167,30 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return Response({'message': 'Successfully updated password'}, status=status.HTTP_201_CREATED)
 
 
-class FacebookLoginAPIView(APIView):
+class FacebookLoginAPIView(AttributeMixins, APIView):
     serializer_class = FacebookAuthSerializer
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
 
     def post(self, request):
-        user = request.data.get('user', {})
-        # pass data received to the serializer.
-        serializer = self.serializer_class(data=user)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return HandleSocialRequest.handle_requests(
+            request, self.serializer_class
+        )
 
 
-class GoogleLoginAPIView(APIView):
+class GoogleLoginAPIView(AttributeMixins, APIView):
     serializer_class = GoogleAuthSerializer
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
 
     def post(self, request):
+        return HandleSocialRequest.handle_requests(
+            request, self.serializer_class
+        )
+
+
+class HandleSocialRequest:
+
+    @classmethod
+    def handle_requests(cls, request, serializer_class):
         user = request.data.get('user',{})
-        # pass data received to the serializer.
-        serializer = self.serializer_class(data=user)
+        serializer = serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -2,6 +2,11 @@ import sendgrid
 from decouple import config
 from django.contrib.sites.shortcuts import get_current_site
 from authors.apps.authentication.backends import JWTAuthentication
+from authors.apps.articles.helper import share_article
+from authors.apps.articles.mixins import(
+    ArticleMixin,
+    CommentsMixin
+)
 from sendgrid.helpers.mail import(
     Email,
     Mail,
@@ -48,12 +53,9 @@ from .serializers import (
 )
 
 
-class CreateArticle(generics.CreateAPIView):
+class CreateArticle(ArticleMixin, generics.CreateAPIView):
     """Class for creation of an article"""
 
-    serializer_class = ArticleSerializer
-    renderer_class = (ArticleJSONRenderer,)
-    permission_classes = (IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
 
     def create(self, request):
@@ -263,10 +265,7 @@ class ReactionView(APIView):
             raise exceptions.ParseError(message)
 
 
-class CommentListCreateAPIView(generics.ListCreateAPIView):
-    renderer_classes = (CommentJSONRenderer,)
-    serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticated,)
+class CommentListCreateAPIView(CommentsMixin, generics.ListCreateAPIView):
     authentication_classes = (JWTAuthentication,)
     queryset = Comment.objects.all()
 
@@ -305,10 +304,7 @@ class CommentListCreateAPIView(generics.ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class CommentRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    renderer_classes = (CommentJSONRenderer,)
-    serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticated,)
+class CommentRetrieveUpdateDestroyAPIView(CommentsMixin, generics.RetrieveUpdateDestroyAPIView):
     authentication_classes = (JWTAuthentication,)
 
     def update(self, request, slug, id, *args, **kwargs):
@@ -393,7 +389,6 @@ class ThreadListCreateAPIView(generics.ListCreateAPIView):
             new_count = count + 1
             Comment.comment_article(count=new_count, slug_param=slug)
 
-            
             thread_count = comment.get_thread_count(id=id)
             new_thread_count = thread_count + 1
             Comment.thread_comment(count=new_thread_count, id_param=id)
@@ -436,56 +431,17 @@ class ShareArticle(APIView):
         serializer = self.serializer_class(data=share_data)
         serializer.is_valid(raise_exception=True)
         host = str(get_current_site(request)) + '/api/articles/'
+        subject_and_host = [begin_subject_with, host]
 
         if not is_email(share_data['share_with']):
             raise serializers.ValidationError({
                     'email': 'Enter a valid email address.'
                 }
             )
-        share_article(begin_subject_with,host, sender, share_data['share_with'],
+        share_article(subject_and_host, sender, share_data['share_with'],
                       content=share_data['content']
         )
 
         return Response({"message": "Article has been successfully shared"},
                         status=status.HTTP_200_OK
         )
-
-
-def share_article(start_subject, host, sender, receiver_email, content):
-    """
-    This method formats how subject and content
-    :param host: current host
-    :param sender: senders email
-    :param receiver_email: email address for the recipient
-    :param content: the slug being shared
-    :return:
-    """
-    subject = "{} shared an article with you via Authors Haven".format(start_subject)
-    content = Content(
-                        "text/plain",
-                        "Hey there, \n {} "
-                        "via Authors Haven service has shared an article with you. "
-                        "Please click the link below to view the article."
-                        "\nhttp://{}{}/".format(start_subject, host, content)
-                    )
-    response = send_mail(sender, receiver_email, subject, content)
-    return response
-
-
-def send_mail(sender_email, receiver_mail, mail_subject, content):
-    """
-    This method shares sends out the email using send grid.
-    :param sender_email: enders email
-    :param receiver_mail: receiver's email
-    :param mail_subject: rmail subject
-    :param content: body to be shared
-    :return:
-    """
-    sg = sendgrid.SendGridAPIClient(apikey=config('SENDGRID_API_KEY'))
-    from_email = Email(sender_email)
-    to_email = Email(receiver_mail)
-    subject = mail_subject
-
-    mail = Mail(from_email, subject, to_email, content)
-    response = sg.client.mail.send.post(request_body=mail.get())
-    return response

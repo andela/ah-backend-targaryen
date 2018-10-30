@@ -5,10 +5,14 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from .models import (
+    Article,
+    Bookmark,
+    Reaction,
+    Impression
+)
 from authors.apps.authentication.models import User
 from authors.apps.profiles.models import Profile
-
-from .models import Article, Impression, Reaction
 
 
 class ViewTest(TestCase):
@@ -86,6 +90,7 @@ class ViewTest(TestCase):
                                      self.article, format="json")
         self.response3 = self.client.post('/api/articles/', self.article_with_tags,
                                     format="json")
+    
     def test_can_create_article(self):
         self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
 
@@ -548,3 +553,120 @@ class ViewTestComments(TestCase):
             "Parent comment is already a sub comment",
             str(result.data['message'])
         )
+class BookmarkModelTest(TestCase):
+    def setUp(self):
+        self.old_count = Bookmark.objects.count()
+        self.user = User.objects.create(
+            username="sensei", email="sen@gmail.com", password="kungfu1"
+        )
+        self.article = Article.objects.create(
+            title="test article", description="Test article",
+            body="my test article"
+        )
+
+    def test_model_bookmark_article(self):
+        Bookmark.objects.create(slug="test-article")
+        self.new_count = Bookmark.objects.count()
+        self.assertNotEqual(self.old_count, self.new_count)
+
+    def test_model_delete_bookmark(self):
+        bookmark = Bookmark()
+        Bookmark.objects.create(slug="test-article", user=self.user)
+        bookmark.remove_bookmark(slug="test-article", user=self.user)
+        self.new_count = Bookmark.objects.count()
+        self.assertEqual(self.old_count, self.new_count)
+
+
+class BookmarkViewTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        self.username = "johndoe"
+        self.email = "johndoe@gmail.com"
+        self.password = "Password1"
+
+        self.user_data = {
+            "user": {
+                "username": self.username, "email": self.email,
+                "password": self.password
+            }
+        }
+
+        self.response = self.client.post(
+            '/api/users/', self.user_data, format="json"
+        )
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Token {}'.format(self.response.data['auth_token'])
+        )
+
+        self.title = 'test article'
+        self.description = 'an article to test model'
+        self.body = 'This article will test our model'
+        self.slug = 'test-article'
+
+        self.article = {
+            'article': {
+                'title': self.title, 'description': self.description,
+                'body': self.body
+            }
+        }
+        self.url = '/api/articles/test-article/bookmark/'
+        self.post_url = '/api/articles/'
+
+    def register_second_user(self):
+        self.client_a = APIClient()
+        self.user_a_data = {
+            "user": {
+                "username": "name", "email": "name@name.com",
+                "password": "nam3namenam3"
+            }
+        }
+        self.result = self.client_a.post(
+            '/api/users/', self.user_a_data, format="json"
+        )
+        self.client_a.credentials(
+            HTTP_AUTHORIZATION='Token {}'.format(self.result.data['auth_token'])
+        )
+
+    def test_can_bookmark_article(self):
+        self.client.post(self.post_url, self.article, format="json")
+        result = self.client.post(self.url, format="json")
+        self.assertEqual(result.status_code, status.HTTP_200_OK)
+
+    def test_can_remove_bookmark(self):
+        self.client.post(self.post_url,  self.article, format="json")
+        self.client.post(self.url, format="json")
+        result = self.client.delete(self.url)
+        self.assertEqual(result.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertIn(
+            'You have removed the bookmark from this article', str(result.data)
+        )
+
+    def test_can_not_delete_non_existent_bookmark(self):
+        self.client.post(self.post_url, self.article, format="json")
+        result = self.client.delete(self.url)
+        self.assertEqual(result.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn('You have not bookmarked this article', str(result.data['error']))
+
+    def test_can_not_delete_someones_bookmark(self):
+        self.register_second_user()
+        self.client.post(self.post_url, self.article, format="json")
+        self.client.post(self.url, format="json")
+        result = self.client_a.delete(self.url)
+        self.assertEqual(result.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn(
+            'You have not bookmarked this article', str(result.data['error'])
+        )
+
+    def test_can_get_all_bookmarks(self):
+        self.client.post(self.post_url, self.article, format="json")
+        self.client.post(self.url, format="json")
+        result = self.client.get('/api/articles/?bookmark=true')
+        self.assertEqual(result.status_code, status.HTTP_200_OK)
+
+    def test_can_not_bookmark_article_twice(self):
+        self.client.post(self.post_url, self.article, format="json")
+        self.client.post(self.url, format="json")
+        result = self.client.post(self.url, format="json")
+        self.assertEqual(result.status_code, status.HTTP_400_BAD_REQUEST)        

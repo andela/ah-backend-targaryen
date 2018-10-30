@@ -27,7 +27,8 @@ from .models import (
     Reaction,
     Impression,
     Tag,
-    Comment
+    Comment,
+    Bookmark
 )
 from authors.apps.authentication.backends import JWTAuthentication
 from authors.apps.profiles.serializers import ProfileListSerializer
@@ -44,11 +45,12 @@ from .serializers import (
     ReactionSerializer,
     TagSerializer,
     CommentSerializer,
-    ShareArticleSerializer
+    ShareArticleSerializer,
+    BookmarkSerializer
 )
 
 
-class CreateArticle(generics.CreateAPIView):
+class CreateArticle(APIView):
     """Class for creation of an article"""
 
     serializer_class = ArticleSerializer
@@ -56,7 +58,7 @@ class CreateArticle(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
 
-    def create(self, request):
+    def post(self, request):
         serializer_context = {'author': request.user.profile}
         serializer_data = request.data.get('article', {})
 
@@ -69,6 +71,16 @@ class CreateArticle(generics.CreateAPIView):
         serializer.save()
 
         return Response({"article": serializer.data}, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        bookmark_request = request.GET.get("bookmark")
+
+        if bookmark_request == 'true':
+            bookmarks = Bookmark.objects.filter(user=request.user)
+            serializer = BookmarkSerializer(bookmarks, many=True)
+            return Response(
+                {"bookmarks": serializer.data},status=status.HTTP_200_OK
+            )
 
 
 class ArticleRetrieveUpdate(APIView):
@@ -89,26 +101,35 @@ class ArticleRetrieveUpdate(APIView):
         profile = Article.get_profile(serializer.data['author'])
         profile_serializer = ProfileListSerializer(profile)
 
-        return Response(
-                {"article": {
-                             "author": profile_serializer.data,
-                             "title": serializer.data['title'],
-                             "description": serializer.data['description'],
-                             "body": serializer.data['body'],
-                             "createdAt": serializer.data['createdAt'],
-                             "updatedAt": serializer.data['updatedAt'],
-                             "slug": serializer.data['slug'],
-                             "fav_count": serializer.data['favourite_count'],
-                             "likes": serializer.data['likes'],
-                             "dislikes": serializer.data['dislikes'],
-                             "tagList": serializer.data['tagList'],
-                             "reading_time": serializer.data['reading_time'],
-                             "comment_count": serializer.data['comment_count']
-                            },
-                 "message": "Success"
-                 },
-                status=status.HTTP_200_OK
-        )
+        message = {
+            "article": {
+                "author": profile_serializer.data,
+                "title": serializer.data['title'],
+                "description": serializer.data['description'],
+                "body": serializer.data['body'],
+                "createdAt": serializer.data['createdAt'],
+                "updatedAt": serializer.data['updatedAt'],
+                "slug": serializer.data['slug'],
+                "fav_count": serializer.data['favourite_count'],
+                "likes": serializer.data['likes'],
+                "dislikes": serializer.data['dislikes'],                
+                "tagList": serializer.data['tagList'],
+                "reading_time": serializer.data['reading_time'],
+                "comment_count": serializer.data['comment_count'],                
+                "bookmark": "None" 
+            },
+            "message": "Success"
+        }
+        
+        if str(request.user) == "AnonymousUser":           
+            return Response(message, status=status.HTTP_200_OK)
+        
+        try:
+            Bookmark.objects.get(slug=slug, user=request.user)
+        except Bookmark.DoesNotExist:
+            return Response(message, status=status.HTTP_200_OK)
+        message['article']['Bookmark'] = "True"   
+        return Response(message, status=status.HTTP_200_OK)
 
     def put(self, request, slug):
         """Update a single article
@@ -489,3 +510,37 @@ def send_mail(sender_email, receiver_mail, mail_subject, content):
     mail = Mail(from_email, subject, to_email, content)
     response = sg.client.mail.send.post(request_body=mail.get())
     return response
+class BookmarkAPIView(APIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = (IsAuthenticated,)
+    bookmark = Bookmark()
+
+    def post(self, request, slug):
+        article = Article.get_article(slug=slug)
+
+        try:
+            Bookmark.objects.get(slug=slug, user=request.user)
+        except Bookmark.DoesNotExist:
+            data = {'slug': slug}
+            serializer_context = {"article": article, 'user': request.user}
+            serializer = self.serializer_class(
+                data=data, context=serializer_context
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(
+                {"message": "Article has been bookmarked"},
+                status.HTTP_200_OK
+            )
+        error = {"error": "You already bookmarked this article"}
+
+        return Response(error, status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, slug):
+        self.bookmark.remove_bookmark(slug=slug, user=request.user)
+        
+        return Response(
+            {"message": "You have removed the bookmark from this article"},
+            status=status.HTTP_204_NO_CONTENT
+        )

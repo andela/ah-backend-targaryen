@@ -5,7 +5,8 @@ from .models import (
     Impression,
     Reaction,
     Tag,
-    Comment
+    Comment,
+    Bookmark
 )
 from .relations import TagRelatedField
 
@@ -40,7 +41,6 @@ class TagSerializer(serializers.ModelSerializer):
 
     def to_representation(self, value):
         return value.tag
-        return Article.objects.create(author=author, **validated_data)
 
 
 class ReactionSerializer(serializers.ModelSerializer):
@@ -150,7 +150,20 @@ class CommentSerializer(serializers.ModelSerializer):
         )
 
 
-
 class ShareArticleSerializer(serializers.Serializer):
     content = serializers.CharField()
     share_with = serializers.CharField()
+class BookmarkSerializer(serializers.ModelSerializer):
+    bookmarked_article = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bookmark
+        fields = ['slug', 'user', 'bookmarked_article']
+    
+    def create(self, validated_data):
+        article = self.context.get('article', None)
+        user = self.context.get('user', None)
+        return Bookmark.objects.create(article=article, user=user, **validated_data)
+    
+    def get_bookmarked_article(self, object):
+        return ArticleSerializer(object.article).data

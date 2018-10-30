@@ -112,7 +112,6 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.tag
-   
 
 
 class Impression(models.Model):
@@ -194,3 +193,31 @@ class Comment(TimeStampedModel):
         parent_comment = Comment.objects.get(id=comment.parent)
         # import pdb; pdb.set_trace()
         return parent_comment.thread_count
+class Bookmark(models.Model):
+
+    slug = models.SlugField(max_length=140, null=True)
+    user = models.ForeignKey(User, models.SET_NULL, null=True)
+    article = models.ForeignKey(Article, models.SET_NULL, null=True)
+
+    def remove_bookmark(self, slug, user):
+        self.slug = slug
+        self.user = user
+
+        Article.get_article(slug=self.slug)
+        try:
+            Bookmark.objects.filter(slug=self.slug)
+
+            try:
+                Bookmark.objects.get(slug=self.slug, user=self.user)
+            except Bookmark.DoesNotExist:
+                error = {"error": "You have not bookmarked this article"}
+                raise exceptions.NotFound(error)
+
+        except Bookmark.DoesNotExist:
+            message = {"error": "No book mark found"}
+            raise exceptions.NotFound(message)
+        
+        bookmarked = Bookmark.objects.filter(
+            slug=self.slug, user=self.user
+        )
+        return bookmarked.delete()

@@ -3,25 +3,12 @@ from authors.apps.authentication.models import User, UserManager
 from authors.apps.authentication.views import (
     generate_ver_token, send_verification_link
     )
-import datetime
-
-import jwt
-from decouple import config
-from django.test import TestCase
 from rest_framework import serializers, status
-from rest_framework.test import APIClient
-
-from .validators import ValidateUserDetails
+from authors.apps.authentication.tests import BaseTestCase
 
 
-class ModelTestCase(TestCase):
+class ModelTestCase(BaseTestCase):
     """Class with tests to do with registration model"""
-
-    def setUp(self):
-        """Define the test client and test variables"""
-        self.old_count = User.objects.count()
-        self.user = User.objects.create_user(
-            username="david", email="david@gmail.com", password="password")
 
     def test_registration_of_user(self):
         """Test that a user can register a new account."""
@@ -46,97 +33,22 @@ class ModelTestCase(TestCase):
 
     def test_get_user_email(self):
         """ Test model method to get user's email """
-        email = self.user.__str__()
+        email = self.second_user.__str__()
         self.assertEqual(email, "david@gmail.com")
 
     def test_get_short_name(self):
         """ Test model method to get username """
-        short_name = self.user.get_short_name()
+        short_name = self.second_user.get_short_name()
         self.assertEqual(short_name, "david")
 
     def test_get_full_name(self):
         """ Test property to get username """
-        full_name = self.user.get_full_name
+        full_name = self.second_user.get_full_name
         self.assertEqual(full_name, "david")
 
 
-class ViewTestCase(TestCase):
+class ViewTestCase(BaseTestCase):
     """Class with tests to do with registration views"""
-
-    def setUp(self):
-        """Test registration api views"""
-        self.client = APIClient()
-        self.user_data = {"user": {"username": "samuel",
-                                   "email": "samuel@gmail.com",
-                                   "password": "password1"}}
-        self.user_data_token = {"user": {"username": "user1",
-                                         "email": "user1@gmail.com",
-                                         "password": "password1"}}
-        self.user_existing_email = {'user': {
-                                    'username': 'samuel',
-                                    'email': 'samuel@gmail.com',
-                                    'password': 'password1'}}
-        self.user_invalid_email = {'user': {
-            'username': 'samuel',
-            'email': 'samuelgmail.com',
-            'password': 'password1'}}
-        self.user_missing_password = {'user': {
-            'username': 'baron',
-            'email': 'baron@gmail.com',
-            'password': None}}
-        self.user_missing_email = {'user': {
-            'username': 'samuel',
-            'email': None,
-            'password': 'password1'}}
-        self.user_missing_name = {'user': {
-            'username': None,
-            'email': 'bridget@gmail.com',
-            'password': 'password_bridget1'}}
-        self.user_non_alphanumeric_password = {'user': {
-            'username': 'samuel',
-            'email': 'samuel@gmail.com',
-            'password': 'passworddd'}}
-        self.user_username_less_than_four = {'user': {
-            'username': 'sam',
-            'email': 'samuel@gmail.com',
-            'password': 'password1'}}
-        self.user_password_less_than_eight = {'user': {
-            'username': 'sam',
-            'email': 'samuel@gmail.com',
-            'password': 'pwd1'}}
-        self.user_forgotten_password = {'user': {
-                                    'username': 'samuel',
-                                    'email': 'samuel@gmail.com'}}
-        self.user_update_password = {"user": {"username": "samuel",
-                                   "email": "samuel@gmail.com",
-                                   "password": "password123"}}
-        self.no_such_user_update_password = {"user": {"username": "buttons",
-                                   "email": "buttons@gmail.com",
-                                   "password": "password123"}}
-        self.token = jwt.encode(
-                {
-                    'name': self.user_forgotten_password['user']['username'],
-                    'exp': datetime.datetime.utcnow() + datetime.timedelta(
-                        minutes=60)},
-                config('SECRET_KEY')).decode('UTF-8')
-        self.non_existing_user_token = jwt.encode(
-                {
-                    'name': self.no_such_user_update_password['user']['username'],
-                    'exp': datetime.datetime.utcnow() + datetime.timedelta(
-                        minutes=60)},
-                config('SECRET_KEY')).decode('UTF-8')
-        self.login_details = {
-            "user": {"email": "samuel@gmail.com", "password": "password1"}}
-        self.login_details_token = {
-            "user": {"email": "samuel@gmail.com", "password": "password1"}}
-        self.login_invalid_email = {
-            "user": {"email": "samuelgmail.com", "password": "password1"}}
-        self.login_wrong_email = {
-            "user": {"email": "wrong@wrong.com", "password": "password1"}}
-        self.login_wrong_password = {
-            "user": {"email": "samuel@gmail.com", "password": "wrongggg"}}
-        self.response = self.client.post(
-            '/api/users/', self.user_data, format="json")
 
     def test_api_can_create_a_user(self):
         """Test the api has user creation capability."""
@@ -264,19 +176,12 @@ class ViewTestCase(TestCase):
         self.assertEqual(res.status_code, status.HTTP_202_ACCEPTED)
 
 
-class ValidatorsTestCase(TestCase):
+class ValidatorsTestCase(BaseTestCase):
     """Class tests the validators used in the validate method"""
-
-    def setUp(self):
-        """Set up user details to validate"""
-        self.user = {"user": {"username": "sam",
-                              "email": "samuelgmail.com",
-                              "password1": "passwor",
-                              "password2": "passworddd"}}
-        self.validator = ValidateUserDetails()
 
     def test_validator_for_username(self):
         """Test the validator for username less than four characters"""
+        
         self.assertRaises(
             serializers.ValidationError,
             lambda: self.validator.is_username_valid(

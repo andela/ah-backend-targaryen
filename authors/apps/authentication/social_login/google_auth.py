@@ -21,7 +21,7 @@ class GoogleAuthentication:
         :return:
         """
         try:
-            token_uri = "https://www.googleapis.com/oauth2/v4/token"
+            token_uri = "https://oauth2.googleapis.com/token"
             credentials = Credentials(access_token,
                                       refresh_token=refresh_token,
                                       id_token=auth_token,

@@ -261,7 +261,7 @@ class ViewTestCase(TestCase):
     def test_send_email_on_registration(self):
         token = generate_ver_token(self.user_data['user']['email'], 60)
         res = send_verification_link(self.user_data['user']['email'], token)
-        self.assertEqual(res.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(res, 1)
 
 
 class ValidatorsTestCase(TestCase):

@@ -146,6 +146,10 @@ class ViewTest(TestCase):
         response = self.method_to_call_on_route('/api/article/share/', self.no_content)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_can_return_articles_for_user(self):
+        result = self.client.get('/api/article/my-articles/')
+        self.assertEqual(result.status_code, status.HTTP_200_OK)
+
 
 class ReactionViewTest(TestCase):
 

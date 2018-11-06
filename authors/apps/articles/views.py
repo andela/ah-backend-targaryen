@@ -48,6 +48,17 @@ from .serializers import (
 )
 
 
+class ReturnArticle(APIView):
+    renderer_classes = (ArticleJSONRenderer,)
+    serializer_class = ArticleSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        articles = Article.objects.filter(author_id=request.user.id)
+        serializer = self.serializer_class(articles, many=True)
+        return Response({'article': serializer.data}, status=status.HTTP_200_OK)    
+
+
 class CreateArticle(generics.CreateAPIView):
     """Class for creation of an article"""
 

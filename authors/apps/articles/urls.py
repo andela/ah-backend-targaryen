@@ -9,7 +9,8 @@ from .views import (
     CommentListCreateAPIView,
     CommentRetrieveUpdateDestroyAPIView,
     ThreadListCreateAPIView,
-    ShareArticle
+    ShareArticle,
+    ReturnArticle
 )
 
 urlpatterns = [
@@ -26,4 +27,6 @@ urlpatterns = [
          ThreadListCreateAPIView.as_view()
          ),
     path('article/share/', ShareArticle.as_view()),
+    path('article/my-articles/', ReturnArticle.as_view()),
+    
 ]

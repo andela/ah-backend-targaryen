@@ -138,6 +138,13 @@ CORS_ORIGIN_WHITELIST = (
     'ah-frontend-targaryen-staging.herokuapp.com',
 )
 
+# Email Settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 # Tell Django about the custom `User` model we created. The string
 # `authentication.User` tells Django we are referring to the `User` model in

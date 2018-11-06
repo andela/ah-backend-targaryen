@@ -5,6 +5,8 @@ from threading import Thread
 import jwt
 import sendgrid
 from decouple import config
+from django.conf import settings
+from django.core.mail import send_mail
 from rest_framework import serializers, status
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -41,14 +43,11 @@ def generate_ver_token(data, time):
         config('SECRET_KEY'), algorithm='HS256').decode('utf-8')
     return ver_token
 
-def send_mail(user_mail, mail_subject, content):
-    sg = sendgrid.SendGridAPIClient(apikey=config('SENDGRID_API_KEY'))
-    from_email = Email("targaryen@authorshaven.com")
-    to_email = Email(user_mail)
+def send_mails(user_mail, mail_subject, content):
+    from_email = "targaryen@authorshaven.com"
     subject = mail_subject
-    mail = Mail(from_email, subject, to_email, content)
-    res = sg.client.mail.send.post(request_body=mail.get())
-    return res
+    res = send_mail(subject, content, from_email, [user_mail], fail_silently=False)
+    return True
 
 def send_verification_link(user_email, token):
     """
@@ -56,11 +55,8 @@ def send_verification_link(user_email, token):
     registration os a user.
     """
     subject = "Authors Haven verification link"
-    content = Content(
-        "text/plain",
-        "Click on the link below to verify your account. \n http://{}".format(token))
-    #Run the sending of the mail in the background
-    response = send_mail(user_email, subject, content)
+    content = "Click on the link below to verify your account. {}".format(token)
+    response = send_mails(user_email, subject, content)
     return response
 
 
@@ -125,13 +121,13 @@ class ResetPasswordAPIView(APIView):
         # render email text
         to_email = serializer_data['email']
         subject = "Password reset link"
-        content = Content(
-            "text/html",
-            '<p>Use this token to reset password</p>\n<p>' +
-            token + '</p>')
-        send_mail(to_email, subject, content)
+        content = \
+        'Use this link to reset password.\n'+ config('LOCAL_URL') + token
+        send_mails(to_email, subject, content)
         return Response(
-            {'message': 'Check your email for reset password'}, status=status.HTTP_200_OK)
+            {'message': 'Check your email for reset password link'},
+            status=status.HTTP_200_OK
+        )
 
 
 class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):

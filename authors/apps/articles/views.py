@@ -54,7 +54,7 @@ class ReturnArticle(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        articles = Article.objects.filter(author_id=request.user.id)
+        articles = Article.objects.filter(author_id=request.user.id).order_by('-createdAt')
         serializer = self.serializer_class(articles, many=True)
         return Response({'article': serializer.data}, status=status.HTTP_200_OK)    
 
@@ -72,7 +72,7 @@ class CreateArticle(generics.CreateAPIView):
         serializer_data = request.data.get('article', {})
 
         time_to_read = Article.article_reading_time(serializer_data['body'])
-        serializer_data['readingTime'] = time_to_read
+        serializer_data['reading_time'] = time_to_read
         serializer = self.serializer_class(data=serializer_data,
                                            context=serializer_context)
 
@@ -156,7 +156,7 @@ class ArticleList(generics.ListAPIView):
     permission_classes = (AllowAny,)
 
     def get_queryset(self):
-        queryset = Article.objects.all()
+        queryset = Article.objects.all().order_by('-createdAt')
         return queryset
 
 

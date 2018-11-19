@@ -1,10 +1,14 @@
-from rest_framework import exceptions, serializers
+from rest_framework import (
+    serializers,
+    exceptions
+)
 
 from .models import (
     Article,
-    Impression,
-    Reaction,
     Tag,
+    Rate,
+    Reaction,
+    Impression, 
     Comment
 )
 from .relations import TagRelatedField
@@ -20,7 +24,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         fields = [
             'author', 'title', 'description', 'body',
             'createdAt', 'updatedAt', 'slug', 'favourite_count',
-            'likes', 'dislikes', 'tagList', 'reading_time', 'comment_count'
+            'likes', 'dislikes', 'tagList', 'reading_time', 'comment_count', 'rating'
         ]
 
     def create(self, validated_data):
@@ -40,7 +44,6 @@ class TagSerializer(serializers.ModelSerializer):
 
     def to_representation(self, value):
         return value.tag
-        return Article.objects.create(author=author, **validated_data)
 
 
 class ReactionSerializer(serializers.ModelSerializer):
@@ -150,7 +153,27 @@ class CommentSerializer(serializers.ModelSerializer):
         )
 
 
-
 class ShareArticleSerializer(serializers.Serializer):
     content = serializers.CharField()
     share_with = serializers.CharField()
+class RateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rate
+        fields = ['user', 'article', 'rating']
+
+    def create(self, validated_data):
+        user = self.context.get('user', None)
+        article = self.context.get('article', None)
+        rate = self.context.get('rating', None)
+        return Rate.objects.create(user=user, article=article, rating=rate)
+
+    def validate(self, data):
+        try:
+            Rate.objects.get(
+                user=data.get('user'),
+                article=data.get('article')
+            )
+
+        except Rate.DoesNotExist:
+            return data
+        raise exceptions.PermissionDenied()

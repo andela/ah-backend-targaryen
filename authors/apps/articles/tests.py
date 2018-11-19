@@ -7,8 +7,12 @@ from rest_framework.test import APIClient
 
 from authors.apps.authentication.models import User
 from authors.apps.profiles.models import Profile
-
-from .models import Article, Impression, Reaction
+from .models import (
+    Article,
+    Impression,
+    Reaction,
+    Rate
+)
 
 
 class ViewTest(TestCase):
@@ -380,6 +384,7 @@ class ViewTestComments(TestCase):
         self.username = "johndoe"
         self.email = "johndoe@gmail.com"
         self.password = "Password1"
+
         self.user_data = {
             "user": {
                 "username": self.username,
@@ -390,12 +395,15 @@ class ViewTestComments(TestCase):
         self.response = self.client.post(
             '/api/users/', self.user_data, format="json"
         )
+
         self.client.credentials(
             HTTP_AUTHORIZATION='Token {}'.format(self.response.data['auth_token'])
-        )
+        )        
         self.title = 'test article'
         self.description = 'an article to test model'
         self.body = 'This article will test our model'
+        self.slug = 'test-article'
+        self.response = self.client.post('/api/users/', self.user_data, format="json")
         self.article = {
             'article': {
                 'title': self.title,
@@ -552,3 +560,70 @@ class ViewTestComments(TestCase):
             "Parent comment is already a sub comment",
             str(result.data['message'])
         )
+
+class RateModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="raddish", email="rad@gmail.com", password="radredrad1"
+        )
+        self.old_count = Rate.objects.count()
+        self.article = Article.objects.create(
+            title="my article", description="test", body="testing article"
+        )
+
+    def test_model_rate(self):
+        Rate.objects.create(user=self.user, article=self.article, rating=2)
+        new_count = Rate.objects.count()
+        self.assertNotEqual(self.old_count, new_count)
+
+
+class RateViewTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        self.username = "johndoe"
+        self.email = "johndoe@gmail.com"
+        self.password = "Password1"
+
+        self.user_data = {
+            "user": {
+                "username": self.username,
+                "email": self.email,
+                "password": self.password
+            }
+        }
+        self.response = self.client.post(
+            '/api/users/', self.user_data, format="json"
+        )
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Token {}'.format(self.response.data['auth_token'])
+        )        
+        self.title = 'test article'
+        self.description = 'an article to test model'
+        self.body = 'This article will test our model'
+        self.slug = 'test-article'
+        self.article = {
+            'article': {
+                'title': self.title,
+                'description': self.description,
+                'body': self.body
+            }
+        }        
+        self.client.post('/api/articles/', self.article, format="json")
+        self.rate = {"rate": 4}
+
+    def test_can_rate_article(self):
+        response = self.client.post(
+            '/api/articles/test-article/rate/', self.rate, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_can_not_rate_more_than_once(self):
+        self.client.post(
+            '/api/articles/test-article/rate/', self.rate, format="json"
+        )
+        response = self.client.post(
+            '/api/articles/test-article/rate/', self.rate, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

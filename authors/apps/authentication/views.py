@@ -7,6 +7,7 @@ import sendgrid
 from decouple import config
 from django.conf import settings
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from rest_framework import serializers, status
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -43,10 +44,17 @@ def generate_ver_token(data, time):
         config('SECRET_KEY'), algorithm='HS256').decode('utf-8')
     return ver_token
 
-def send_mails(user_mail, mail_subject, content):
+def send_mails(user_mail, mail_subject, content, msg_html=False):
     from_email = "targaryen@authorshaven.com"
     subject = mail_subject
-    res = send_mail(subject, content, from_email, [user_mail], fail_silently=False)
+    res = send_mail(
+        subject,
+        content,
+        from_email,
+        [user_mail],
+        html_message=msg_html,
+        fail_silently=False
+    )
     return True
 
 def send_verification_link(user_email, token):
@@ -123,7 +131,8 @@ class ResetPasswordAPIView(APIView):
         subject = "Password reset link"
         content = \
         'Use this link to reset password.\n'+ config('LOCAL_URL') + token
-        send_mails(to_email, subject, content)
+        msg_html = render_to_string('reset_password_email.html', {'url': config('LOCAL_URL') + token })
+        send_mails(to_email, subject, content, msg_html=msg_html)
         return Response(
             {'message': 'Check your email for reset password link'},
             status=status.HTTP_200_OK

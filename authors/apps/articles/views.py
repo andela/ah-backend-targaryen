@@ -255,23 +255,27 @@ class ReactionView(APIView):
 
         try:
             article = Article.get_article(slug=slug)
-            reaction= Impression.objects.get(
+            reaction_impression = Impression.objects.get(
                 name=request.data['reaction']
             )
             reaction = Reaction.objects.get(
                 article=article.id,
                 user=request.user.id,
-                reaction=reaction
+                reaction=reaction_impression.id
             )
             message = self.check_reaction(
                 request.data['reaction'],
                 request
             )
             ReactionSerializer.reaction_value(
-                reaction.id, article.slug, article, -1
+                reaction_impression.id, article.slug, article, -1
             )
             reaction.delete()
             return Response(message, status=status.HTTP_204_NO_CONTENT)
+
+        except Reaction.DoesNotExist:
+            message = 'You have not yet interacted with this article'
+            raise exceptions.ParseError(message)
 
         except Reaction.DoesNotExist:
             message = 'You have not yet interacted with this article'

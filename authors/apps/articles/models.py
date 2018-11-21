@@ -150,6 +150,7 @@ class Comment(TimeStampedModel):
         on_delete=models.CASCADE,
         null=True
     )
+    author_name = models.TextField(null=True)
     article = models.ForeignKey(
         'articles.Article',
         on_delete=models.CASCADE,

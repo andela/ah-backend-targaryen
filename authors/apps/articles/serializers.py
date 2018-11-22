@@ -136,17 +136,50 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            'id', 'author', 'article', 'body',
+            'id', 'author', 'author_name', 'article', 'body',
             'parent', 'created_at', 'updated_at', 'thread_count'
         ]
 
     def create(self, validated_data):
+        author_name = self.context.get('author_name', None)
+        author = self.context.get('author', None)
+        article = self.context.get('article', None)
+        parent = self.context.get('parent', None)
+
+        return Comment.objects.create(
+            author_name=author_name,
+            author=author,
+            article=article,
+            parent=parent,
+            **validated_data
+        )
+
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
+    def get_author_name(self, field):
+        request = self.context.get('author', None)
+
+        profile = request.user.profile
+        return profile.user.username
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'author', 'author_name', 'article', 'body',
+            'parent', 'created_at', 'updated_at', 'thread_count'
+        ]
+
+    def create(self, validated_data):
+        author_name = self.get_author_name('author')
         author = self.context.get('author', None)
         article = self.context.get('article', None)
         parent = self.context.get('parent', None)
 
         return Comment.objects.create(
             author=author,
+            author_name=author_name,
             article=article,
             parent=parent,
             **validated_data

@@ -45,6 +45,7 @@ from .serializers import (
     ArticleSerializer,
     ReactionSerializer,
     TagSerializer,
+    CommentCreateSerializer,
     CommentSerializer,
     ShareArticleSerializer,
     RateSerializer
@@ -285,6 +286,7 @@ class ReactionView(APIView):
 class CommentListCreateAPIView(generics.ListCreateAPIView):
     renderer_classes = (CommentJSONRenderer,)
     serializer_class = CommentSerializer
+    serializer_create_class = CommentCreateSerializer
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
     queryset = Comment.objects.all()
@@ -297,7 +299,7 @@ class CommentListCreateAPIView(generics.ListCreateAPIView):
             }
             serializer_data = request.data.get('comment', {})
 
-            serializer = self.serializer_class(
+            serializer = self.serializer_create_class(
                 data=serializer_data,
                 context=serializer_context
             )

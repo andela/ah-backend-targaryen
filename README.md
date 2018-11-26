@@ -400,6 +400,33 @@ No additional parameters required
 
 `GET /api/tags`
 
+## Setting up the project for development
+- Install requirements `$ pip install -r requirements.txt`
 
+- Because the project uses the `python-decouple` library, you need to
+  create a `.env` file and add your config variables inside this file. the
+  contents of the file may look like,
 
+```bash
+NAME=authors_heaven
+USER=authors_heaven_user
+PASSWORD=""
+HOST=""
+PORT=""
+```
 
+- Prepare migrations by running:
+
+  `$ ./manage.py makemigrations`
+
+- Apply the migrations by running:
+
+  `$ ./manage.py migrate`
+
+- Create a superuser, in your local db instance, by running,
+
+  `$ ./manage.py createsuperuser`
+
+- Start the local app server by running:
+
+  `$ ./manage.py runserver`

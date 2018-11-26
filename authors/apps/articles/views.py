@@ -19,6 +19,10 @@ from rest_framework.permissions import (
     AllowAny
 )
 from pyisemail import is_email
+from authors.apps.authentication.models import User
+from authors.apps.profiles.models import Profile
+from authors.apps.authentication.serializers import UserSerializer
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Avg, Count
@@ -31,6 +35,7 @@ from .models import (
     Comment,
     Rate
 )
+from authors.apps.profiles.models import Profile
 from authors.apps.authentication.backends import JWTAuthentication
 from authors.apps.profiles.serializers import ProfileListSerializer
 from authors.apps.articles.exceptions import NotFoundException
@@ -83,7 +88,8 @@ class CreateArticle(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response({"article": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"article": serializer.data},
+                        status=status.HTTP_201_CREATED)
 
 
 class ArticleRetrieveUpdate(APIView):
@@ -103,6 +109,21 @@ class ArticleRetrieveUpdate(APIView):
 
         profile = Article.get_profile(serializer.data['author'])
         profile_serializer = ProfileListSerializer(profile)
+        # profile_serializer = ProfileSerializer(profile)
+        reader_profile = Profile.objects.get(user=request.user)
+
+        # The user's reading stats are only incremented if
+        # he/she reads an article
+        # that is not theirs
+        if reader_profile and reader_profile != profile:
+            reading_time = serializer.data['reading_time']
+            current_stats = reader_profile.reading_stats
+            increment = Article.get_reading_time_as_integer(
+                reading_time)
+            new_stats = Profile.increment_read_stats(
+                current_stats, increment)
+            Profile.objects.filter(user=request.user).update(
+                reading_stats=new_stats)
 
         return Response(
                 {"article": {
@@ -132,7 +153,8 @@ class ArticleRetrieveUpdate(APIView):
         :return article"""
 
         article = Article.get_user_article(user_email=request.user, slug=slug)
-        serializer = self.serializer_class(article, data=request.data['article'])
+        serializer = self.serializer_class(
+            article, data=request.data['article'])
         serializer.is_valid(raise_exception=True)
         serializer.save()
 

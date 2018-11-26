@@ -50,7 +50,9 @@ class ProfileRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         serializer_data = {
             'username': user_data.get('username', request.user.username),
             'bio': user_data.get('bio', request.user.profile.bio),
-            'avatar': user_data.get('avatar', request.user.profile.avatar)
+            'avatar': user_data.get('avatar', request.user.profile.avatar),
+            'reading_stats': user_data.get('reading_stats', 
+                            request.user.profile.reading_stats)
         }
 
         serializer = self.serializer_class(

@@ -75,6 +75,22 @@ class Article(models.Model):
         return str(int(round(time_to_read))) + ' minutes'
 
     @staticmethod
+    def get_reading_time_as_integer(reading_time):
+        """ Extract reading time as integer """
+
+        int_reading_time = 0
+        if reading_time == 'Less than a minute':
+            int_reading_time = 1
+        elif reading_time == 'About 1 minute':
+            int_reading_time = 2
+        else:
+            integers_found = [int(reading_time)
+                    for reading_time in str.split(reading_time)
+                    if reading_time.isdigit()]
+            int_reading_time = integers_found[0]
+        return int_reading_time
+
+    @staticmethod
     def get_profile(profile_id):
         return Profile.objects.get(id=profile_id)
 

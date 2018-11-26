@@ -17,7 +17,9 @@ from .relations import TagRelatedField
 class ArticleSerializer(serializers.ModelSerializer):
     """Create a new article"""
 
-    tagList = TagRelatedField(many=True, required=False, queryset=Tag.objects.all(), source='tags')
+    tagList = TagRelatedField(
+            many=True, required=False, 
+            queryset=Tag.objects.all(), source='tags')
 
     class Meta:
         model = Article
